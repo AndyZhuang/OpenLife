@@ -1,0 +1,24 @@
+# Build outputs
+target/
+*.pdb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+
+# OpenLife data
+.openlife/
+.zeroclaw/
