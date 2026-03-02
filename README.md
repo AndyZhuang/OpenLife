@@ -63,6 +63,41 @@
 
 OpenLife routes your queries to specialized bioinformatics skills:
 
+| Category | Skill | Description |
+|----------|-------|-------------|
+| **Pharmacogenomics** | `pharmgx-reporter` | 31 SNPs, 12 genes, 51 drugs, CPIC guidelines |
+| **Nutrigenomics** | `nutrigx-advisor` | Personalized nutrition from genetic data |
+| **Diversity & Equity** | `equity-scorer` | HEIM diversity scoring, FST, PCA |
+| **Variant Annotation** | `vcf-annotator` | VEP, ClinVar, gnomAD |
+| **Literature** | `lit-synthesizer` | PubMed/bioRxiv synthesis |
+| **Single-Cell** | `scrna-orchestrator` | Scanpy automation |
+| **Sequence Analysis** | `seq-wrangler` | FASTQ, alignment, BAM, trimming |
+| **Ancestry** | `ancestry-pca` | Population structure, PCA |
+| **Metagenomics** | `metagenomics` | 16S, shotgun profiling |
+| **Semantic Analysis** | `semantic-sim` | Research gaps, NTDs |
+| **Protein Structure** | `struct-predictor` | AlphaFold, PDB |
+| **Reproducibility** | `repro-enforcer` | Nextflow, Conda |
+
+### 🗄️ Database Access Skills
+
+Specialized skills for querying major bioinformatics databases:
+
+| Database | Skill | Description |
+|----------|-------|-------------|
+| GWAS Catalog | `gwas-database` | SNP-trait associations, p-values |
+| ClinVar | `clinvar-database` | Variant pathogenicity |
+| PubMed | `pubmed-database` | Literature search |
+| ChEMBL | `chembl-database` | Drug/compound data |
+| COSMIC | `cosmic-database` | Cancer mutations |
+| UniProt | `uniprot-database` | Protein sequences |
+| Ensembl | `ensembl-database` | Genome data |
+| STRING | `string-database` | Protein interactions |
+| KEGG | `kegg-database` | Pathway analysis |
+
+### 🧬 Bioinformatics Skills
+
+OpenLife routes your queries to specialized bioinformatics skills:
+
 | Intent | Skill | Description |
 |--------|-------|-------------|
 | Drug interactions, pharmacogenomics | `pharmgx-reporter` | 31 SNPs, 12 genes, 51 drugs |
@@ -236,6 +271,40 @@ OpenLife is built on ZeroClaw's trait-driven architecture:
 3. **Use SKILL.md methodology only** - Never hallucinate bioinformatics parameters
 
 ## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+### Adding New Skills
+
+OpenLife skills follow the [Agent Skills](https://agentskills.io/) standard. You can:
+
+1. **Create from scratch** - Add a skill directory with `SKILL.md` and optional Python script
+2. **Port from claude-scientific-skills** - Copy from [K-Dense-AI/claude-scientific-skills](https://github.com/K-Dense-AI/claude-scientific-skills) (140+ skills available)
+3. **Install via CLI** - `openlife bio install /path/to/skill`
+
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+### Adding New Skills
+
+OpenLife skills follow the [Agent Skills](https://agentskills.io/) standard. You can:
+
+1. **Create from scratch** - Add a skill directory with `SKILL.md` and optional Python script
+2. **Port from claude-scientific-skills** - Copy from [K-Dense-AI/claude-scientific-skills](https://github.com/K-Dense-AI/claude-scientific-skills) (140+ skills available)
+3. **Install via CLI** - `openlife bio install /path/to/skill`
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+## Links
+
+- [GitHub](https://github.com/openlife-ai/openlife)
+- [ZeroClaw](https://github.com/zeroclaw-labs/zeroclaw)
+- [ClawBio](https://github.com/ClawBio/ClawBio)
+- [K-Dense-AI Scientific Skills](https://github.com/K-Dense-AI/claude-scientific-skills)
+- [CPIC Guidelines](https://cpicpgx.org)
 
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
