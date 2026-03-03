@@ -1,19 +1,18 @@
 pub mod orchestrator;
-
-use anyhow::Result;
-use std::path::PathBuf;
+pub mod core;
 
 pub use orchestrator::BioIntent;
+pub use core::BioCore;
 
 pub const OPENLIFE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-pub fn get_skills_dir() -> PathBuf {
+pub fn get_skills_dir() -> std::path::PathBuf {
     let dirs = directories::ProjectDirs::from("ai", "openlife", "openlife")
         .expect("Failed to get project directories");
     dirs.data_dir().join("skills")
 }
 
-pub async fn list_skills() -> Result<()> {
+pub async fn list_skills() -> anyhow::Result<()> {
     let skills_dir = get_skills_dir();
     
     if !skills_dir.exists() {
@@ -48,8 +47,7 @@ struct SkillInfo {
     tags: Vec<String>,
 }
 
-fn load_skill_info(skill_dir: &PathBuf) -> SkillInfo {
-    // Try SKILL.toml first
+fn load_skill_info(skill_dir: &std::path::PathBuf) -> SkillInfo {
     let toml_path = skill_dir.join("SKILL.toml");
     
     if toml_path.exists() {
@@ -68,16 +66,13 @@ fn load_skill_info(skill_dir: &PathBuf) -> SkillInfo {
         }
     }
     
-    // Fall back to SKILL.md
     let md_path = skill_dir.join("SKILL.md");
     if md_path.exists() {
         if let Ok(content) = std::fs::read_to_string(&md_path) {
-            // Parse YAML frontmatter (between first two ---)
             if content.starts_with("---") {
                 let after_first = &content[3..];
                 if let Some(end) = after_first.find("---") {
                     let frontmatter = after_first[..end].trim();
-                    // Parse YAML frontmatter using serde_yaml
                     if let Ok(info) = serde_yaml::from_str::<serde_yaml::Value>(frontmatter) {
                         let get_str = |key: &str| -> String {
                             info.get(key)
@@ -106,7 +101,6 @@ fn load_skill_info(skill_dir: &PathBuf) -> SkillInfo {
                     }
                 }
             }
-            // Try to get description from first non-empty line after frontmatter
             let lines: Vec<&str> = content.lines().collect();
             let mut desc = String::new();
             let mut found_desc = false;
@@ -146,7 +140,7 @@ fn load_skill_info(skill_dir: &PathBuf) -> SkillInfo {
     }
 }
 
-pub async fn show_skill_info(skill_name: &str) -> Result<()> {
+pub async fn show_skill_info(skill_name: &str) -> anyhow::Result<()> {
     let skills_dir = get_skills_dir();
     let skill_path = skills_dir.join(skill_name);
     
@@ -171,7 +165,7 @@ pub async fn show_skill_info(skill_name: &str) -> Result<()> {
     Ok(())
 }
 
-pub async fn run_skill(skill_name: &str, input: Option<&str>, output: Option<&str>) -> Result<()> {
+pub async fn run_skill(skill_name: &str, input: Option<&str>, output: Option<&str>) -> anyhow::Result<()> {
     use std::process::Command;
     
     let skills_dir = get_skills_dir();
@@ -181,7 +175,6 @@ pub async fn run_skill(skill_name: &str, input: Option<&str>, output: Option<&st
         anyhow::bail!("Skill '{}' not found", skill_name);
     }
     
-    // Try different Python script names
     let script_names = vec![
         format!("{}.py", skill_name.replace("-", "_")),
         format!("{}.py", skill_name),
@@ -199,7 +192,6 @@ pub async fn run_skill(skill_name: &str, input: Option<&str>, output: Option<&st
     let script_path = match script_path {
         Some(p) => p,
         None => {
-            // Try to find any .py file
             if let Ok(entries) = std::fs::read_dir(&skill_path) {
                 for entry in entries.flatten() {
                     let path = entry.path();
@@ -242,8 +234,8 @@ pub async fn run_skill(skill_name: &str, input: Option<&str>, output: Option<&st
     Ok(())
 }
 
-pub async fn install_skill(skill_path: &str) -> Result<()> {
-    let source = PathBuf::from(skill_path);
+pub async fn install_skill(skill_path: &str) -> anyhow::Result<()> {
+    let source = std::path::PathBuf::from(skill_path);
     let skills_dir = get_skills_dir();
     
     if !source.exists() {
@@ -268,7 +260,7 @@ pub async fn install_skill(skill_path: &str) -> Result<()> {
     Ok(())
 }
 
-fn copy_dir_all(src: &PathBuf, dst: &PathBuf) -> Result<()> {
+fn copy_dir_all(src: &std::path::PathBuf, dst: &std::path::PathBuf) -> anyhow::Result<()> {
     if !dst.exists() {
         std::fs::create_dir_all(dst)?;
     }
@@ -288,7 +280,7 @@ fn copy_dir_all(src: &PathBuf, dst: &PathBuf) -> Result<()> {
     Ok(())
 }
 
-pub async fn query_with_natural_language(query: &str) -> Result<()> {
+pub async fn query_with_natural_language(query: &str) -> anyhow::Result<()> {
     let intent = BioIntent::from_query(query);
     
     println!("Detected intent: {:?}", intent);
@@ -304,6 +296,9 @@ pub async fn query_with_natural_language(query: &str) -> Result<()> {
         BioIntent::ProteinStructure => "struct-predictor",
         BioIntent::Reproducibility => "repro-enforcer",
         BioIntent::SequenceAnalysis => "seq-wrangler",
+        BioIntent::DatabaseQuery => "bio-orchestrator",
+        BioIntent::SemanticAnalysis => "semantic-sim",
+        BioIntent::Metagenomics => "metagenomics",
         BioIntent::Unknown => {
             println!("Could not determine which skill to use. Try being more specific.");
             return Ok(());

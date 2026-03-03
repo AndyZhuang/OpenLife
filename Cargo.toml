@@ -6,14 +6,25 @@ authors = ["OpenLife Team"]
 license = "MIT OR Apache-2.0"
 description = "ZeroClaw-based Bioinformatics AI Agent"
 repository = "https://github.com/openlife-ai/openlife"
+rust-version = "1.75"
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
 anyhow = "1.0"
 tokio = { version = "1.42", features = ["full"] }
 directories = "6.0"
-toml = "1.0"
+toml = { version = "1.0", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.9"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
+thiserror = "2.0"
+
+[dependencies.zeroclaw]
+git = "https://github.com/zeroclaw-labs/zeroclaw.git"
+tag = "v0.1.7"
+default-features = false
+features = ["sandbox-landlock"]
 
 [build-dependencies]
 

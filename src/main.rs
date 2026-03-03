@@ -1,7 +1,22 @@
+mod bio;
+mod config;
+mod error;
+
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
-mod bio;
+fn init_logging() {
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("info"));
+    
+    tracing_subscriber::registry()
+        .with(filter)
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+    
+    tracing::info!("OpenLife v{} starting...", bio::OPENLIFE_VERSION);
+}
 
 #[derive(Parser)]
 #[command(name = "openlife")]
@@ -69,8 +84,10 @@ fn run_zeroclaw(args: &[&str]) -> ! {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    init_logging();
+    
     let cli = Cli::parse();
-
+    
     match cli.command {
         Commands::Bio { action } => {
             match action {
