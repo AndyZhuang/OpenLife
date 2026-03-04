@@ -71,6 +71,10 @@ enum BioAction {
     },
     Query {
         natural_language: String,
+        #[arg(short, long)]
+        input: Option<String>,
+        #[arg(short, long)]
+        output: Option<String>,
     },
 }
 
@@ -97,8 +101,8 @@ async fn main() -> Result<()> {
                     bio::run_skill(&skill_name, input.as_deref(), output.as_deref()).await?
                 }
                 BioAction::Install { skill_path } => bio::install_skill(&skill_path).await?,
-                BioAction::Query { natural_language } => {
-                    bio::query_with_natural_language(&natural_language).await?
+                BioAction::Query { natural_language, input, output } => {
+                    bio::query_with_natural_language(&natural_language, input.as_deref(), output.as_deref()).await?
                 }
             }
         }

@@ -2,7 +2,6 @@ pub mod orchestrator;
 pub mod core;
 
 pub use orchestrator::BioIntent;
-pub use core::BioCore;
 
 pub const OPENLIFE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -280,7 +279,7 @@ fn copy_dir_all(src: &std::path::PathBuf, dst: &std::path::PathBuf) -> anyhow::R
     Ok(())
 }
 
-pub async fn query_with_natural_language(query: &str) -> anyhow::Result<()> {
+pub async fn query_with_natural_language(query: &str, input: Option<&str>, output: Option<&str>) -> anyhow::Result<()> {
     let intent = BioIntent::from_query(query);
     
     println!("Detected intent: {:?}", intent);
@@ -307,5 +306,5 @@ pub async fn query_with_natural_language(query: &str) -> anyhow::Result<()> {
     
     println!("Routing to skill: {}", skill_name);
     
-    run_skill(skill_name, None, None).await
+    run_skill(skill_name, input, output).await
 }

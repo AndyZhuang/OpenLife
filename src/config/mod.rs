@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;

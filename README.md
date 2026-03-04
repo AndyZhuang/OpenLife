@@ -94,19 +94,6 @@ Specialized skills for querying major bioinformatics databases:
 | STRING | `string-database` | Protein interactions |
 | KEGG | `kegg-database` | Pathway analysis |
 
-### 🧬 Bioinformatics Skills
-
-OpenLife routes your queries to specialized bioinformatics skills:
-
-| Intent | Skill | Description |
-|--------|-------|-------------|
-| Drug interactions, pharmacogenomics | `pharmgx-reporter` | 31 SNPs, 12 genes, 51 drugs |
-| Ancestry, PCA | `ancestry-pca` | Population structure analysis |
-| Diversity, equity | `equity-scorer` | HEIM diversity scoring |
-| Nutrition, diet | `nutrigx-advisor` | Nutrigenomics recommendations |
-| Variant annotation | `vcf-annotator` | VEP, ClinVar, gnomAD |
-| Literature search | `lit-synthesizer` | PubMed/bioRxiv synthesis |
-| Single-cell RNA-seq | `scrna-orchestrator` | Scanpy automation |
 
 ### 🔧 ZeroClaw Features
 
@@ -121,6 +108,15 @@ When you use OpenLife, you also get all ZeroClaw features:
 
 ## Installation
 
+### Prerequisites
+
+OpenLife requires [ZeroClaw](https://github.com/zeroclaw-labs/zeroclaw) to be installed first. ZeroClaw provides the core agent functionality.
+
+```bash
+# Install ZeroClaw (required)
+cargo install zeroclaw
+```
+
 ### From Binary (Recommended)
 
 Download the latest release for your platform:
@@ -130,10 +126,9 @@ Download the latest release for your platform:
 curl -L https://github.com/openlife-ai/openlife/releases/latest/download/openlife -o openlife
 chmod +x openlife
 sudo mv openlife /usr/local/bin/
-
-# Or use cargo
-cargo install openlife
 ```
+
+Note: Binaries are not yet published. Please build from source for now.
 
 ### From Source
 
@@ -192,7 +187,7 @@ openlife bio list              # List all available skills
 openlife bio info <skill>     # Show skill information
 openlife bio run <skill> --input <file> --output <dir>  # Run a skill
 openlife bio install <path>    # Install a skill
-openlife bio query "<query>"   # Natural language query
+openlife bio query "<query>" --input <file> --output <dir>  # Natural language query
 ```
 
 ### ZeroClaw Commands
@@ -282,17 +277,25 @@ OpenLife skills follow the [Agent Skills](https://agentskills.io/) standard. You
 2. **Port from claude-scientific-skills** - Copy from [K-Dense-AI/claude-scientific-skills](https://github.com/K-Dense-AI/claude-scientific-skills) (140+ skills available)
 3. **Install via CLI** - `openlife bio install /path/to/skill`
 
-## Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
-
-### Adding New Skills
-
-OpenLife skills follow the [Agent Skills](https://agentskills.io/) standard. You can:
-
-1. **Create from scratch** - Add a skill directory with `SKILL.md` and optional Python script
-2. **Port from claude-scientific-skills** - Copy from [K-Dense-AI/claude-scientific-skills](https://github.com/K-Dense-AI/claude-scientific-skills) (140+ skills available)
 3. **Install via CLI** - `openlife bio install /path/to/skill`
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+## Links
+
+- [GitHub](https://github.com/openlife-ai/openlife)
+- [ZeroClaw](https://github.com/zeroclaw-labs/zeroclaw)
+- [ClawBio](https://github.com/ClawBio/ClawBio)
+- [K-Dense-AI Scientific Skills](https://github.com/K-Dense-AI/claude-scientific-skills)
+- [CPIC Guidelines](https://cpicpgx.org)
+
+---
+
+<p align="center">
+  <sub>Built with 🦀 by the OpenLife Team</sub>
+</p>
 
 ## License
 
