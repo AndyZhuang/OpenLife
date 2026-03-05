@@ -108,40 +108,46 @@ When you use OpenLife, you also get all ZeroClaw features:
 
 ## Installation
 
-### Prerequisites
-
-OpenLife requires [ZeroClaw](https://github.com/zeroclaw-labs/zeroclaw) to be installed first. ZeroClaw provides the core agent functionality.
+### Quick Install (Recommended)
 
 ```bash
-# Install ZeroClaw (required)
+# 1. Install ZeroClaw (required)
 cargo install zeroclaw
-```
 
-### From Binary (Recommended)
-
-Download the latest release for your platform:
-
-```bash
-# Linux/macOS
-curl -L https://github.com/openlife-ai/openlife/releases/latest/download/openlife -o openlife
-chmod +x openlife
-sudo mv openlife /usr/local/bin/
-```
-
-Note: Binaries are not yet published. Please build from source for now.
-
-### From Source
-
-```bash
-# Clone the repository
+# 2. Clone and build OpenLife
 git clone https://github.com/openlife-ai/openlife.git
 cd openlife
-
-# Build
 cargo build --release
 
-# Install
+# 3. Add to PATH (choose one):
+
+# Option A: Copy to /usr/local/bin (requires sudo)
+sudo cp target/release/openlife /usr/local/bin/
+
+# Option B: Add to ~/.local/bin (recommended)
+mkdir -p ~/.local/bin
+export PATH="$HOME/.local/bin:$PATH"
+cp target/release/openlife ~/.local/bin/
+
+# Option C: Use cargo install
 cargo install --path .
+```
+
+### Verify Installation
+
+```bash
+openlife --help
+openlife bio list
+```
+
+### First Time Setup
+
+```bash
+# Initialize OpenLife workspace
+openlife onboard --force
+
+# Start Web Gateway (optional)
+openlife gateway
 ```
 
 ## Quick Start
@@ -200,9 +206,8 @@ openlife status              # Show system status
 openlife doctor              # Run diagnostics
 openlife channel              # Manage channels
 openlife cron                # Manage scheduled tasks
-openlife skill               # Manage skills
-openlife update              # Self-update
 openlife estop               # Emergency stop
+openlife gateway              # Start Web Gateway (Dashboard)
 ```
 
 ## Creating a Skill
@@ -267,16 +272,23 @@ OpenLife is built on ZeroClaw's trait-driven architecture:
 
 ## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+## License
 
-### Adding New Skills
+MIT License - see [LICENSE](LICENSE) for details.
 
-OpenLife skills follow the [Agent Skills](https://agentskills.io/) standard. You can:
+## Links
 
-1. **Create from scratch** - Add a skill directory with `SKILL.md` and optional Python script
-2. **Port from claude-scientific-skills** - Copy from [K-Dense-AI/claude-scientific-skills](https://github.com/K-Dense-AI/claude-scientific-skills) (140+ skills available)
-3. **Install via CLI** - `openlife bio install /path/to/skill`
+- [GitHub](https://github.com/openlife-ai/openlife)
+- [ZeroClaw](https://github.com/zeroclaw-labs/zeroclaw)
+- [ClawBio](https://github.com/ClawBio/ClawBio)
+- [K-Dense-AI Scientific Skills](https://github.com/K-Dense-AI/claude-scientific-skills)
+- [CPIC Guidelines](https://cpicpgx.org)
 
+---
+
+<p align="center">
+  <sub>Built with 🦀 by the OpenLife Team</sub>
+</p>
 3. **Install via CLI** - `openlife bio install /path/to/skill`
 
 ## License

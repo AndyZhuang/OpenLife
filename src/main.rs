@@ -46,6 +46,7 @@ enum Commands {
     Channel,
     Cron,
     Skill,
+    Gateway,
     Bio {
         #[command(subcommand)]
         action: BioAction,
@@ -79,11 +80,85 @@ enum BioAction {
 }
 
 fn run_zeroclaw(args: &[&str]) -> ! {
-    let status = std::process::Command::new("zeroclaw")
-        .args(args)
-        .status()
-        .expect("Failed to run zeroclaw");
-    std::process::exit(status.code().unwrap_or(1));
+    use std::process::Command;
+    
+    let mut cmd = Command::new("zeroclaw");
+    cmd.args(args);
+    
+    // 对于 gateway 命令，只静默日志，保留关键输出
+    let is_gateway = !args.is_empty() && args[0] == "gateway";
+    
+    if is_gateway {
+        cmd.stderr(std::process::Stdio::piped());
+        
+        let child = cmd.spawn();
+        match child {
+            Ok(mut child) => {
+                use std::io::{BufRead, BufReader};
+                
+                // 获取 stdout
+                if let Some(stdout) = child.stdout.take() {
+                    let reader = BufReader::new(stdout);
+                    for line in reader.lines() {
+                        if let Ok(line) = line {
+                            // 只显示关键信息行
+                            if line.contains("listening") 
+                                || line.contains("Web Dashboard")
+                                || line.contains("PAIRING")
+                                || line.contains("┌")
+                                || line.contains("│")
+                                || line.contains("└")
+                                || line.contains("🦀")
+                                || line.contains("🌐")
+                                || line.contains("🔐")
+                                || line.contains("Press Ctrl") {
+                                println!("{}", line);
+                            }
+                        }
+                    }
+                }
+                
+                // 等待进程
+                let status = child.wait();
+                match status {
+                    Ok(s) => std::process::exit(s.code().unwrap_or(1)),
+                    Err(e) => {
+                        eprintln!("Error: {}", e);
+                        std::process::exit(1);
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("Error: Failed to run zeroclaw: {}", e);
+                std::process::exit(1);
+            }
+        }
+    } else {
+        // 其他命令完全静默
+        cmd.stdout(std::process::Stdio::null());
+        cmd.stderr(std::process::Stdio::null());
+        
+        let child = cmd.spawn();
+        
+        match child {
+            Ok(mut child) => {
+                match child.wait() {
+                    Ok(status) => {
+                        std::process::exit(status.code().unwrap_or(1));
+                    }
+                    Err(e) => {
+                        eprintln!("Error: Failed to wait for zeroclaw: {}", e);
+                        std::process::exit(1);
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("Error: Failed to run zeroclaw: {}", e);
+                eprintln!("Make sure ZeroClaw is installed: cargo install zeroclaw");
+                std::process::exit(1);
+            }
+        }
+    }
 }
 
 #[tokio::main]
@@ -135,6 +210,7 @@ async fn main() -> Result<()> {
         Commands::Channel => run_zeroclaw(&["channel", "--help"]),
         Commands::Cron => run_zeroclaw(&["cron", "--help"]),
         Commands::Skill => run_zeroclaw(&["skill", "--help"]),
+        Commands::Gateway => run_zeroclaw(&["gateway"]),
     }
 
     Ok(())
