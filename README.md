@@ -10,10 +10,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/openlife-ai/openlife/actions/workflows/ci.yml">
-    <img src="https://github.com/openlife-ai/openlife/actions/workflows/ci.yml/badge.svg" alt="CI">
+  <a href="https://github.com/AndyZhuang/openlife/actions/workflows/ci.yml">
+    <img src="https://github.com/AndyZhuang/openlife/actions/workflows/ci.yml/badge.svg" alt="CI">
   </a>
-  <a href="https://github.com/openlife-ai/openlife/releases">
+  <a href="https://github.com/AndyZhuang/openlife/releases">
     <img src="https://img.shields.io/github/v/release/openlife-ai/openlife?include_prereleases" alt="Release">
   </a>
   <a href="LICENSE">
