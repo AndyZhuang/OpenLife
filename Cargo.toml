@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["OpenLife Team"]
 license = "MIT OR Apache-2.0"
-description = "ZeroClaw-based Bioinformatics AI Agent"
+description = "The Best Bioinformatics AI Agent - Built on ZeroClaw"
 repository = "https://github.com/openlife-ai/openlife"
 rust-version = "1.75"
 
@@ -24,9 +24,6 @@ thiserror = "2.0"
 git = "https://github.com/zeroclaw-labs/zeroclaw.git"
 tag = "v0.1.7"
 default-features = false
-features = ["sandbox-landlock"]
-
-[build-dependencies]
 
 [profile.release]
 opt-level = "z"
