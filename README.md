@@ -280,7 +280,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 - [GitHub](https://github.com/openlife-ai/openlife)
 - [ZeroClaw](https://github.com/zeroclaw-labs/zeroclaw)
-- [ClawBio](https://github.com/ClawBio/ClawBio)
 - [K-Dense-AI Scientific Skills](https://github.com/K-Dense-AI/claude-scientific-skills)
 - [CPIC Guidelines](https://cpicpgx.org)
 
@@ -288,54 +287,3 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 <p align="center">
   <sub>Built with 🦀 by the OpenLife Team</sub>
-</p>
-3. **Install via CLI** - `openlife bio install /path/to/skill`
-
-## License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
-## Links
-
-- [GitHub](https://github.com/openlife-ai/openlife)
-- [ZeroClaw](https://github.com/zeroclaw-labs/zeroclaw)
-- [ClawBio](https://github.com/ClawBio/ClawBio)
-- [K-Dense-AI Scientific Skills](https://github.com/K-Dense-AI/claude-scientific-skills)
-- [CPIC Guidelines](https://cpicpgx.org)
-
----
-
-<p align="center">
-  <sub>Built with 🦀 by the OpenLife Team</sub>
-</p>
-
-## License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
-## Links
-
-- [GitHub](https://github.com/openlife-ai/openlife)
-- [ZeroClaw](https://github.com/zeroclaw-labs/zeroclaw)
-- [ClawBio](https://github.com/ClawBio/ClawBio)
-- [K-Dense-AI Scientific Skills](https://github.com/K-Dense-AI/claude-scientific-skills)
-- [CPIC Guidelines](https://cpicpgx.org)
-
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
-
-## License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
-## Links
-
-- [GitHub](https://github.com/openlife-ai/openlife)
-- [ZeroClaw](https://github.com/zeroclaw-labs/zeroclaw)
-- [ClawBio](https://github.com/ClawBio/ClawBio)
-- [CPIC Guidelines](https://cpicpgx.org)
-
----
-
-<p align="center">
-  <sub>Built with 🦀 by the OpenLife Team</sub>
-</p>
