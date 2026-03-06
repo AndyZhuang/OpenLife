@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  <strong>ZeroClaw-based Bioinformatics AI Agent</strong><br>
-  Local-first. Privacy-focused. High-performance.
+  <strong>The Best Bioinformatics AI Agent</strong><br>
+  🧬 Built on ZeroClaw. Local-first. Privacy-focused.
 </p>
 
 <p align="center">
