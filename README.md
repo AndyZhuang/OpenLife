@@ -287,3 +287,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 <p align="center">
   <sub>Built with 🦀 by the OpenLife Team</sub>
+</p>
