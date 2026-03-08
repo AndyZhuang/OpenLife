@@ -176,6 +176,14 @@ async fn start_gateway(host: String, port: u16) -> Result<()> {
     cmd.arg("gateway")
        .arg("--host")
        .arg(&host)
+       .arg("-p")
+       .arg(port.to_string())
+       .stdout(std::process::Stdio::null())
+       .stderr(std::process::Stdio::null());
+    let mut cmd = Command::new("zeroclaw");
+    cmd.arg("gateway")
+       .arg("--host")
+       .arg(&host)
        .arg("--port")
        .arg(port.to_string())
        .stdout(std::process::Stdio::null())
