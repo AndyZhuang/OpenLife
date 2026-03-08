@@ -5,256 +5,544 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OpenLife - Bioinformatics AI Agent</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --primary: #00d4ff;
+            --secondary: #7b2ff7;
+            --bg-dark: #0a0a1a;
+            --bg-card: rgba(255,255,255,0.05);
+            --text: #fff;
+            --text-dim: #888;
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1a2e 100%);
             min-height: 100vh;
-            color: #fff;
+            color: var(--text);
         }
         
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 40px 20px;
-        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
         
         header {
-            text-align: center;
-            margin-bottom: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 40px;
         }
         
-        .logo {
-            font-size: 80px;
-            margin-bottom: 20px;
-        }
-        
-        h1 {
-            font-size: 48px;
-            margin-bottom: 10px;
-            background: linear-gradient(90deg, #00d4ff, #7b2ff7);
+        .logo-section { display: flex; align-items: center; gap: 15px; }
+        .logo { font-size: 40px; }
+        .logo h1 {
+            font-size: 28px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
         
-        .tagline {
+        .nav { display: flex; gap: 10px; }
+        .nav button {
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .nav button:hover, .nav button.active {
+            background: var(--primary);
+            color: var(--bg-dark);
+        }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .hero {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        .hero h2 {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        .hero .tagline {
             font-size: 20px;
-            color: #888;
+            color: var(--text-dim);
             margin-bottom: 30px;
         }
         
-        .status {
-            display: inline-block;
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
             padding: 8px 20px;
             background: rgba(0, 212, 255, 0.1);
-            border: 1px solid #00d4ff;
+            border: 1px solid var(--primary);
             border-radius: 20px;
-            color: #00d4ff;
-            font-size: 14px;
-        }
-        
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-            margin-bottom: 60px;
-        }
-        
-        .feature-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 30px;
-            transition: transform 0.3s, border-color 0.3s;
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-5px);
-            border-color: #00d4ff;
-        }
-        
-        .feature-icon {
-            font-size: 40px;
-            margin-bottom: 20px;
-        }
-        
-        .feature-card h3 {
-            font-size: 24px;
-            margin-bottom: 15px;
-            color: #00d4ff;
-        }
-        
-        .feature-card p {
-            color: #aaa;
-            line-height: 1.6;
-        }
-        
-        .quick-start {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            padding: 40px;
-            margin-bottom: 60px;
-        }
-        
-        .quick-start h2 {
-            font-size: 28px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        
-        .command {
-            background: #0d0d1a;
-            border-radius: 8px;
-            padding: 15px 20px;
-            margin: 10px 0;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .command .label {
-            background: #7b2ff7;
-            padding: 4px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            min-width: 80px;
-            text-align: center;
-        }
-        
-        .command .code {
-            color: #00d4ff;
+            color: var(--primary);
         }
         
         .stats {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
-            margin-bottom: 60px;
+            margin: 40px 0;
         }
-        
         .stat-card {
-            background: rgba(255, 255, 255, 0.05);
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
             border-radius: 12px;
             padding: 25px;
             text-align: center;
         }
+        .stat-number { font-size: 32px; font-weight: bold; color: var(--primary); }
+        .stat-label { color: var(--text-dim); margin-top: 5px; }
         
-        .stat-number {
-            font-size: 36px;
-            font-weight: bold;
-            color: #00d4ff;
-            margin-bottom: 5px;
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+        }
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 30px;
+            transition: transform 0.3s;
+        }
+        .feature-card:hover { transform: translateY(-5px); border-color: var(--primary); }
+        .feature-icon { font-size: 36px; margin-bottom: 15px; }
+        .feature-card h3 { color: var(--primary); margin-bottom: 10px; }
+        .feature-card p { color: var(--text-dim); line-height: 1.6; }
+        
+        .terminal {
+            background: #0d0d1a;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Monaco', monospace;
+            font-size: 13px;
+        }
+        .terminal-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+        }
+        .terminal-label {
+            background: var(--secondary);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            min-width: 70px;
+            text-align: center;
+        }
+        .terminal-code { color: var(--primary); }
+        
+        /* Agent Chat UI */
+        .agent-container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            height: calc(100vh - 150px);
         }
         
-        .stat-label {
-            color: #888;
+        .agent-sidebar {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .agent-sidebar h3 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        .skill-item {
+            padding: 12px;
+            margin: 5px 0;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .skill-item:hover { background: rgba(0,212,255,0.1); }
+        .skill-item.selected { border-left: 3px solid var(--primary); }
+        
+        .agent-main {
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 12px;
+            max-width: 80%;
+        }
+        .message.user {
+            background: var(--primary);
+            color: var(--bg-dark);
+            margin-left: auto;
+        }
+        .message.assistant {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .chat-input {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .chat-input input {
+            flex: 1;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            padding: 12px 15px;
+            color: var(--text);
             font-size: 14px;
         }
-        
-        footer {
-            text-align: center;
-            color: #666;
-            padding: 20px;
+        .chat-input input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .chat-input button {
+            background: var(--primary);
+            border: none;
+            color: var(--bg-dark);
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
         }
         
-        footer a {
-            color: #00d4ff;
-            text-decoration: none;
+        /* Skills Dashboard */
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+        }
+        .skill-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .skill-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+        .skill-card h4 { color: var(--primary); margin-bottom: 8px; }
+        .skill-card p { color: var(--text-dim); font-size: 13px; line-height: 1.5; }
+        
+        .category-title {
+            color: var(--secondary);
+            margin: 30px 0 15px;
+            font-size: 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 10px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <div class="logo">🧬</div>
-            <h1>OpenLife</h1>
-            <p class="tagline">ZeroClaw-based Bioinformatics AI Agent</p>
-            <span class="status">● Running</span>
+            <div class="logo-section">
+                <span class="logo">🧬</span>
+                <h1>OpenLife</h1>
+            </div>
+            <nav class="nav">
+                <button class="active" onclick="showTab('home')">Home</button>
+                <button onclick="showTab('agent')">AI Agent</button>
+                <button onclick="showTab('skills')">Bio-Skills</button>
+                <button onclick="showTab('docs')">Docs</button>
+            </nav>
         </header>
         
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-number">14+</div>
-                <div class="stat-label">Bio-Skills</div>
+        <!-- Home Tab -->
+        <div id="home" class="tab-content active">
+            <div class="hero">
+                <h2>Bioinformatics AI Agent</h2>
+                <p class="tagline">Built on ZeroClaw • Local-first • Privacy-focused</p>
+                <div class="status-badge">
+                    <span>●</span> Running on Port 3000
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-number">9</div>
-                <div class="stat-label">Database APIs</div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number">14+</div>
+                    <div class="stat-label">Bioinformatics Skills</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">9</div>
+                    <div class="stat-label">Database APIs</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">100%</div>
+                    <div class="stat-label">Local Processing</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">Rust</div>
+                    <div class="stat-label">High Performance</div>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-number">100%</div>
-                <div class="stat-label">Local Processing</div>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">💊</div>
+                    <h3>Pharmac3>
+                    ogenomics</h<p>Analyze 31 SNPs across 12 genes for drug response predictions based on CPIC guidelines.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🥗</div>
+                    <h3>Nutrigenomics</h3>
+                    <p>Personalized nutrition recommendations based on genetic variants.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🧬</div>
+                    <h3>Variant Analysis</h3>
+                    <p>Annotate VCF with ClinVar, gnomAD, VEP. Query GWAS Catalog.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Equity Scoring</h3>
+                    <p>Compute HEIM diversity metrics. Population structure with PCA.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔬</div>
+                    <h3>Literature</h3>
+                    <p>Query PubMed and bioRxiv. Build citation graphs.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>AI Agent</h3>
+                    <p>Chat with AI using natural language for bioinformatics tasks.</p>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-number">Rust</div>
-                <div class="stat-label">Powered by</div>
+            
+            <h3 class="category-title">Quick Commands</h3>
+            <div class="terminal">
+                <div class="terminal-line">
+                    <span class="terminal-label">List</span>
+                    <span class="terminal-code">openlife bio list</span>
+                </div>
+                <div class="terminal-line">
+                    <span class="terminal-label">Run</span>
+                    <span class="terminal-code">openlife bio run pharmgx-reporter --input data.txt</span>
+                </div>
+                <div class="terminal-line">
+                    <span class="terminal-label">Query</span>
+                    <span class="terminal-code">openlife bio query "What drugs to avoid for CYP2D6"</span>
+                </div>
+                <div class="terminal-line">
+                    <span class="terminal-label">Agent</span>
+                    <span class="terminal-code">openlife agent</span>
+                </div>
             </div>
         </div>
         
-        <div class="features">
-            <div class="feature-card">
-                <div class="feature-icon">💊</div>
-                <h3>Pharmacogenomics</h3>
-                <p>Analyze 31 SNPs across 12 genes for drug response predictions based on CPIC guidelines. Supports 51 medications.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🥗</div>
-                <h3>Nutrigenomics</h3>
-                <p>Personalized nutrition recommendations based on genetic variants affecting vitamin metabolism, omega-3, and more.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🧬</div>
-                <h3>Variant Analysis</h3>
-                <p>Annotate VCF files with ClinVar, gnomAD, and VEP. Query GWAS Catalog for SNP-trait associations.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">📊</div>
-                <h3>Equity Scoring</h3>
-                <p>Compute HEIM diversity metrics from genetic data. Analyze population structure with PCA.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🔬</div>
-                <h3>Literature Synthesis</h3>
-                <p>Query PubMed and bioRxiv for relevant publications. Build citation graphs for research.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🛡️</div>
-                <h3>Privacy First</h3>
-                <p>All genetic data processing happens locally. No data leaves your machine.</p>
-            </div>
-        </div>
-        
-        <div class="quick-start">
-            <h2>🚀 Quick Start</h2>
-            <div class="command">
-                <span class="label">List</span>
-                <span class="code">openlife bio list</span>
-            </div>
-            <div class="command">
-                <span class="label">Run Skill</span>
-                <span class="code">openlife bio run pharmgx-reporter --input data.txt --output report/</span>
-            </div>
-            <div class="command">
-                <span class="label">Query</span>
-                <span class="code">openlife bio query "What drugs should I avoid based on CYP2D6?"</span>
-            </div>
-            <div class="command">
-                <span class="label">Agent</span>
-                <span class="code">openlife agent</span>
+        <!-- Agent Tab -->
+        <div id="agent" class="tab-content">
+            <div class="agent-container">
+                <div class="agent-sidebar">
+                    <h3>🧬 Bio Skills</h3>
+                    <div class="skill-item selected" onclick="selectSkill('general')">💬 General Chat</div>
+                    <div class="skill-item" onclick="selectSkill('pharmgx-reporter')">💊 PharmGx Reporter</div>
+                    <div class="skill-item" onclick="selectSkill('nutrigx-advisor')">🥗 NutriGx Advisor</div>
+                    <div class="skill-item" onclick="selectSkill('equity-scorer')">📊 Equity Scorer</div>
+                    <div class="skill-item" onclick="selectSkill('vcf-annotator')">🧬 VCF Annotator</div>
+                    <div class="skill-item" onclick="selectSkill('gwas-database')">🔍 GWAS Database</div>
+                    <div class="skill-item" onclick="selectSkill('clinvar-database')">🏥 ClinVar</div>
+                    
+                    <h3 style="margin-top: 30px;">⚙️ Tools</h3>
+                    <div class="skill-item" onclick="selectSkill('shell')">🖥️ Shell Command</div>
+                    <div class="skill-item" onclick="selectSkill('file')">📁 File Operations</div>
+                    <div class="skill-item" onclick="selectSkill('memory')">🧠 Memory</div>
+                </div>
+                
+                <div class="agent-main">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message assistant">
+                            🧬 Hello! I'm OpenLife, your bioinformatics AI agent.
+                            <br><br>
+                            I can help you with:
+                            <br>• Pharmacogenomics analysis
+                            <br>• Nutrition recommendations
+                            <br>• Variant annotation
+                            <br>• Literature search
+                            <br>• And more...
+                            <br><br>
+                            Select a skill from the sidebar or just ask me anything!
+                        </div>
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" id="chatInput" placeholder="Ask me about bioinformatics..." onkeypress="handleChatKey(event)">
+                        <button onclick="sendMessage()">Send</button>
+                    </div>
+                </div>
             </div>
         </div>
         
-        <footer>
-            <p>OpenLife v0.1.0 | Built on ZeroClaw | <a href="https://github.com/openlife-ai/openlife">GitHub</a></p>
-        </footer>
+        <!-- Skills Tab -->
+        <div id="skills" class="tab-content">
+            <h2 class="category-title">Analysis Skills</h2>
+            <div class="skills-grid">
+                <div class="skill-card">
+                    <h4>💊 pharmgx-reporter</h4>
+                    <p>Pharmacogenomic report from DTC genetic data. 31 SNPs, 12 genes, 51 drugs.</p>
+                </div>
+                <div class="skill-card">
+                    <h4>🥗 nutrigx-advisor</h4>
+                    <p>Personalized nutrition from genetic data. MTHFR, APOE, folate, vitamin D.</p>
+                </div>
+                <div class="skill-card">
+                    <h4>📊 equity-scorer</h4>
+                    <p>HEIM diversity scoring, FST, PCA plots from VCF or ancestry data.</p>
+                </div>
+                <div class="skill-card">
+                    <h4>🧬 vcf-annotator</h4>
+                    <p>Variant annotation with VEP, ClinVar, gnomAD.</p>
+                </div>
+                <div class="skill-card">
+                    <h4>🔬 lit-synthesizer</h4>
+                    <p>PubMed/bioRxiv literature synthesis.</p>
+                </div>
+                <div class="skill-card">
+                    <h4>🧫 scrna-orchestrator</h4>
+                    <p>Single-cell RNA-seq analysis with Scanpy.</p>
+                </div>
+            </div>
+            
+            <h2 class="category-title">Database Skills</h2>
+            <div class="skills-grid">
+                <div class="skill-card">
+                    <h4>🔍 gwas-database</h4>
+                    <p>NHGRI-EBI GWAS Catalog. SNP-trait associations.</p>
+                </div>
+                <div class="skill-card">
+                    <h4>🏥 clinvar-database</h4>
+                    <p>NCBI ClinVar. Variant pathogenicity.</p>
+                </div>
+                <div class="skill-card">
+                    <h4>📚 pubmed-database</h4>
+                    <p>PubMed literature search. Boolean/MeSH queries.</p>
+                </div>
+                <div class="skill-card">
+                    <h4>💊 chembl-database</h4>
+                    <p>ChEMBL bioactive molecules. Drug discovery.</p>
+                </div>
+                <div class="skill-card">
+                    <h4>🧬 cosmic-database</h4>
+                    <p>COSMIC cancer mutations.</p>
+                </div>
+                <div class="skill-card">
+                    <h4>🧪 uniprot-database</h4>
+                    <p>UniProt protein sequences.</p>
+                </div>
+                <div class="skill-card">
+                    <h4>🧬 ensembl-database</h4>
+                    <p>Ensembl genome data. 250+ species.</p>
+                </div>
+                <div class="skill-card">
+                    <h4>🔗 string-database</h4>
+                    <p>STRING protein interactions.</p>
+                </div>
+                <div class="skill-card">
+                    <h4>🛤️ kegg-database</h4>
+                    <p>KEGG pathway analysis.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Docs Tab -->
+        <div id="docs" class="tab-content">
+            <h2 class="category-title">Documentation</h2>
+            <div class="feature-card">
+                <h3>📖 Getting Started</h3>
+                <p>OpenLife is a bioinformatics AI agent built on ZeroClaw. Use the CLI or this dashboard to interact with bioinformatics skills.</p>
+            </div>
+            <br>
+            <div class="feature-card">
+                <h3>🛠️ Installation</h3>
+                <pre style="background:#0d0d1a;padding:15px;border-radius:8px;margin:10px 0;">
+curl -L https://github.com/openlife-ai/openlife/releases/latest/download/openlife -o openlife
+chmod +x openlife
+sudo mv openlife /usr/local/bin/</pre>
+            </div>
+            <br>
+            <div class="feature-card">
+                <h3>💻 CLI Reference</h3>
+                <pre style="background:#0d0d1a;padding:15px;border-radius:8px;margin:10px 0;">
+openlife bio list              # List skills
+openlife bio run <skill>       # Run a skill
+openlife bio query "..."       # Natural language
+openlife agent                 # AI Agent
+openlife gateway               # Web dashboard
+openlife version               # Version info</pre>
+            </div>
+        </div>
     </div>
+    
+    <script>
+        let currentSkill = 'general';
+        
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        function selectSkill(skill) {
+            currentSkill = skill;
+            document.querySelectorAll('.skill-item').forEach(s => s.classList.remove('selected'));
+            event.target.classList.add('selected');
+        }
+        
+        function handleChatKey(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+        
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            
+            const messages = document.getElementById('chatMessages');
+            messages.innerHTML += `<div class="message user">${msg}</div>`;
+            messages.innerHTML += `<div class="message assistant">🤔 Processing...</div>`;
+            input.value = '';
+            
+            try {
+                const response = await fetch('/api/agent', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({message: msg, skill: currentSkill})
+                });
+                const data = await response.json();
+                messages.innerHTML = messages.innerHTML.replace('🤔 Processing...', 
+                    `<div class="message assistant">${data.response || 'No response'}</div>`);
+            } catch (e) {
+                messages.innerHTML = messages.innerHTML.replace('🤔 Processing...', 
+                    '<div class="message assistant">⚠️ Agent backend not running. Use CLI: openlife agent</div>');
+            }
+            messages.scrollTop = messages.scrollHeight;
+        }
+    </script>
 </body>
 </html>

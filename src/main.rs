@@ -4,6 +4,9 @@ mod error;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use std::io::{Read, Write};
+use std::net::TcpListener;
+use std::process::Command;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -51,9 +54,7 @@ enum Commands {
 #[derive(Subcommand)]
 enum BioAction {
     List,
-    Info {
-        skill_name: String,
-    },
+    Info { skill_name: String },
     Run {
         skill_name: String,
         #[arg(short, long)]
@@ -61,9 +62,7 @@ enum BioAction {
         #[arg(short, long)]
         output: Option<String>,
     },
-    Install {
-        skill_path: String,
-    },
+    Install { skill_path: String },
     Query {
         natural_language: String,
         #[arg(short, long)]
@@ -145,17 +144,16 @@ fn main() -> Result<()> {
 }
 
 fn start_dashboard(host: String, port: u16) -> Result<()> {
-    use std::net::TcpListener;
-    use std::io::{Read, Write};
-    
     println!("🌐 Starting OpenLife Dashboard...");
     println!();
     println!("   URL: http://{}:{}", host, port);
+    println!("   AI Agent: http://{}:{}/agent", host, port);
+    println!("   Bio-Skills: http://{}:{}/skills", host, port);
+    println!();
     println!("   Press Ctrl+C to stop");
     println!();
     
     let html_content = include_str!("dashboard.html");
-    
     let addr = format!("{}:{}", host, port);
     let listener = TcpListener::bind(&addr)?;
     
@@ -165,35 +163,18 @@ fn start_dashboard(host: String, port: u16) -> Result<()> {
     
     for stream in listener.incoming() {
         let mut stream = stream?;
-        let mut buffer = [0; 2048];
+        let mut buffer = [0; 4096];
         
         stream.read(&mut buffer).ok();
         
         let request = String::from_utf8_lossy(&buffer);
+        let path = request.lines().next()
+            .unwrap_or("/")
+            .split_whitespace()
+            .nth(1)
+            .unwrap_or("/");
         
-        let response = if request.starts_with("GET / ") || request.starts_with("GET /index.html") {
-            format!(
-                "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-                html_content.len(),
-                html_content
-            )
-        } else if request.starts_with("GET /api/status") {
-            let status = r#"{"status":"running","version":"0.1.0","skills":14}"#;
-            format!(
-                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-                status.len(),
-                status
-            )
-        } else if request.starts_with("GET /api/skills") {
-            let skills = r#"{"skills":["pharmgx-reporter","nutrigx-advisor","equity-scorer","gwas-database","clinvar-database","pubmed-database","chembl-database","cosmic-database","uniprot-database","ensembl-database","string-database","kegg-database"]}"#;
-            format!(
-                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-                skills.len(),
-                skills
-            )
-        } else {
-            "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_string()
-        };
+        let response = handle_request(path, &request, html_content);
         
         stream.write_all(response.as_bytes()).ok();
         stream.flush().ok();
@@ -202,9 +183,94 @@ fn start_dashboard(host: String, port: u16) -> Result<()> {
     Ok(())
 }
 
+fn handle_request(path: &str, request: &str, html: &str) -> String {
+    match path {
+        "/" | "/index.html" => {
+            format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                html.len(), html
+            )
+        }
+        
+        "/api/status" => {
+            let status = r#"{"status":"running","version":"0.1.0","skills":14,"zeroclaw":true}"#;
+            format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                status.len(), status
+            )
+        }
+        
+        "/api/skills" => {
+            let skills = r#"[
+                {"id":"pharmgx-reporter","name":"PharmGx Reporter","category":"analysis","desc":"31 SNPs, 12 genes, 51 drugs"},
+                {"id":"nutrigx-advisor","name":"NutriGx Advisor","category":"analysis","desc":"Personalized nutrition"},
+                {"id":"equity-scorer","name":"Equity Scorer","category":"analysis","desc":"HEIM diversity scoring"},
+                {"id":"gwas-database","name":"GWAS Database","category":"database","desc":"SNP-trait associations"},
+                {"id":"clinvar-database","name":"ClinVar Database","category":"database","desc":"Variant pathogenicity"},
+                {"id":"pubmed-database","name":"PubMed Database","category":"database","desc":"Literature search"},
+                {"id":"chembl-database","name":"ChEMBL Database","category":"database","desc":"Drug/compound data"},
+                {"id":"cosmic-database","name":"COSMIC Database","category":"database","desc":"Cancer mutations"},
+                {"id":"uniprot-database","name":"UniProt Database","category":"database","desc":"Protein sequences"},
+                {"id":"ensembl-database","name":"Ensembl Database","category":"database","desc":"Genome data"},
+                {"id":"string-database","name":"STRING Database","category":"database","desc":"Protein interactions"},
+                {"id":"kegg-database","name":"KEGG Database","category":"database","desc":"Pathway analysis"},
+                {"id":"vcf-annotator","name":"VCF Annotator","category":"analysis","desc":"Variant annotation"},
+                {"id":"lit-synthesizer","name":"Literature Synthesizer","category":"analysis","desc":"PubMed synthesis"}
+            ]"#;
+            format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                skills.len(), skills
+            )
+        }
+        
+        "/api/agent" if request.contains("POST") => {
+            // Proxy to ZeroClaw agent
+            let body = request.split("\r\n\r\n").nth(1).unwrap_or("{}");
+            
+            // Try to run via zeroclaw CLI
+            let output = Command::new("zeroclaw")
+                .arg("agent")
+                .arg("-m")
+                .arg("From web UI:")
+                .output();
+            
+            let response = if let Ok(output) = output {
+                if output.status.success() {
+                    let result = String::from_utf8_lossy(&output.stdout);
+                    format!(r#"{{"response":"{}","source":"zeroclaw"}}"#, result.replace("\"", "\\\""))
+                } else {
+                    r#"{"response":"Agent is initializing. Try: openlife agent","source":"openlife"}"#.to_string()
+                }
+            } else {
+                r#"{"response":"Agent backend not available. Run 'openlife agent' in terminal.","source":"openlife"}"#.to_string()
+            };
+            
+            format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                response.len(), response
+            )
+        }
+        
+        "/api/bio/run" if request.contains("POST") => {
+            // Run bio skill via CLI
+            let body = request.split("\r\n\r\n").nth(1).unwrap_or("{}");
+            
+            // Simple response - actual execution would need proper parsing
+            let response = r#"{"status":"ok","message":"Use CLI: openlife bio run <skill> --input <file>"}"#;
+            
+            format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                response.len(), response
+            )
+        }
+        
+        _ => {
+            "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_string()
+        }
+    }
+}
+
 fn run_zeroclaw_command(args: Vec<&str>) {
-    use std::process::Command;
-    
     let mut cmd = Command::new("zeroclaw");
     cmd.args(&args);
     cmd.stdout(std::process::Stdio::null());
