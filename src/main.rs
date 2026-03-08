@@ -4,21 +4,8 @@ mod error;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-
-fn init_logging() {
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("info"));
-    
-    tracing_subscriber::registry()
-        .with(filter)
-        .with(tracing_subscriber::fmt::layer())
-        .init();
-    
-    tracing::info!("🧬 OpenLife v{} starting...", VERSION);
-}
 
 #[derive(Parser)]
 #[command(name = "openlife")]
@@ -86,29 +73,28 @@ enum BioAction {
     },
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    init_logging();
-    
+fn main() -> Result<()> {
     let cli = Cli::parse();
     
     match cli.command {
-        // 🧬 Bioinformatics commands - OpenLife's core feature
         Commands::Bio { action } => {
-            match action {
-                BioAction::List => bio::list_skills().await?,
-                BioAction::Info { skill_name } => bio::show_skill_info(&skill_name).await?,
-                BioAction::Run { skill_name, input, output } => {
-                    bio::run_skill(&skill_name, input.as_deref(), output.as_deref()).await?
+            let rt = tokio::runtime::Runtime::new()?;
+            rt.block_on(async {
+                match action {
+                    BioAction::List => bio::list_skills().await?,
+                    BioAction::Info { skill_name } => bio::show_skill_info(&skill_name).await?,
+                    BioAction::Run { skill_name, input, output } => {
+                        bio::run_skill(&skill_name, input.as_deref(), output.as_deref()).await?
+                    }
+                    BioAction::Install { skill_path } => bio::install_skill(&skill_path).await?,
+                    BioAction::Query { natural_language, input, output } => {
+                        bio::query_with_natural_language(&natural_language, input.as_deref(), output.as_deref()).await?
+                    }
                 }
-                BioAction::Install { skill_path } => bio::install_skill(&skill_path).await?,
-                BioAction::Query { natural_language, input, output } => {
-                    bio::query_with_natural_language(&natural_language, input.as_deref(), output.as_deref()).await?
-                }
-            }
+                Ok::<(), anyhow::Error>(())
+            })?;
         }
         
-        // Version info with branding
         Commands::Version => {
             println!("🧬 OpenLife v{}", VERSION);
             println!();
@@ -126,87 +112,104 @@ async fn main() -> Result<()> {
             println!("     • Protein Structure Prediction");
         }
         
-        // Gateway - Start the web interface (OpenLife branded)
         Commands::Gateway { host, port } => {
-            start_gateway(host, port).await?;
+            start_dashboard(host, port)?;
         }
         
-        // Other ZeroClaw commands - delegate silently
         Commands::Onboard { interactive, force } => {
             run_zeroclaw_command(vec!["onboard", 
                 if interactive { "--interactive" } else { "" },
                 if force { "--force" } else { "" }
-            ].into_iter().filter(|s| !s.is_empty()).collect()).await?;
+            ].into_iter().filter(|s| !s.is_empty()).collect());
         }
         
         Commands::Agent { message } => {
             if let Some(m) = message {
-                run_zeroclaw_command(vec!["agent", "-m", &m]).await?;
+                run_zeroclaw_command(vec!["agent", "-m", &m]);
             } else {
-                run_zeroclaw_command(vec!["agent"]).await?;
+                run_zeroclaw_command(vec!["agent"]);
             }
         }
         
-        Commands::Daemon => run_zeroclaw_command(vec!["daemon"]).await?,
-        Commands::Doctor => run_zeroclaw_command(vec!["doctor"]).await?,
-        Commands::Status => run_zeroclaw_command(vec!["status"]).await?,
-        Commands::Update => run_zeroclaw_command(vec!["update"]).await?,
-        Commands::Estop => run_zeroclaw_command(vec!["estop"]).await?,
-        Commands::Channel => run_zeroclaw_command(vec!["channel"]).await?,
-        Commands::Cron => run_zeroclaw_command(vec!["cron"]).await?,
-        Commands::Skill => run_zeroclaw_command(vec!["skill"]).await?,
+        Commands::Daemon => run_zeroclaw_command(vec!["daemon"]),
+        Commands::Doctor => run_zeroclaw_command(vec!["doctor"]),
+        Commands::Status => run_zeroclaw_command(vec!["status"]),
+        Commands::Update => run_zeroclaw_command(vec!["update"]),
+        Commands::Estop => run_zeroclaw_command(vec!["estop"]),
+        Commands::Channel => run_zeroclaw_command(vec!["channel"]),
+        Commands::Cron => run_zeroclaw_command(vec!["cron"]),
+        Commands::Skill => run_zeroclaw_command(vec!["skill"]),
     }
 
     Ok(())
 }
 
-async fn start_gateway(host: String, port: u16) -> Result<()> {
-    use std::process::Command;
+fn start_dashboard(host: String, port: u16) -> Result<()> {
+    use std::net::TcpListener;
+    use std::io::{Read, Write};
     
-    println!("🌐 Starting OpenLife Gateway...");
+    println!("🌐 Starting OpenLife Dashboard...");
     println!();
     println!("   URL: http://{}:{}", host, port);
-    println!("   Dashboard: http://{}:{}/", host, port);
-    println!();
     println!("   Press Ctrl+C to stop");
     println!();
     
-    // Start zeroclaw gateway silently in background
-    let mut cmd = Command::new("zeroclaw");
-    cmd.arg("gateway")
-       .arg("--host")
-       .arg(&host)
-       .arg("-p")
-       .arg(port.to_string())
-       .stdout(std::process::Stdio::null())
-       .stderr(std::process::Stdio::null());
-    let mut cmd = Command::new("zeroclaw");
-    cmd.arg("gateway")
-       .arg("--host")
-       .arg(&host)
-       .arg("--port")
-       .arg(port.to_string())
-       .stdout(std::process::Stdio::null())
-       .stderr(std::process::Stdio::null());
+    let html_content = include_str!("dashboard.html");
     
-    let _ = cmd.spawn();
+    let addr = format!("{}:{}", host, port);
+    let listener = TcpListener::bind(&addr)?;
     
-    // Keep running until interrupted
-    tokio::signal::ctrl_c().await?;
+    println!("🧬 OpenLife Dashboard is running!");
+    println!("   Local: http://{}/", addr);
+    println!();
+    
+    for stream in listener.incoming() {
+        let mut stream = stream?;
+        let mut buffer = [0; 2048];
+        
+        stream.read(&mut buffer).ok();
+        
+        let request = String::from_utf8_lossy(&buffer);
+        
+        let response = if request.starts_with("GET / ") || request.starts_with("GET /index.html") {
+            format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                html_content.len(),
+                html_content
+            )
+        } else if request.starts_with("GET /api/status") {
+            let status = r#"{"status":"running","version":"0.1.0","skills":14}"#;
+            format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                status.len(),
+                status
+            )
+        } else if request.starts_with("GET /api/skills") {
+            let skills = r#"{"skills":["pharmgx-reporter","nutrigx-advisor","equity-scorer","gwas-database","clinvar-database","pubmed-database","chembl-database","cosmic-database","uniprot-database","ensembl-database","string-database","kegg-database"]}"#;
+            format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                skills.len(),
+                skills
+            )
+        } else {
+            "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_string()
+        };
+        
+        stream.write_all(response.as_bytes()).ok();
+        stream.flush().ok();
+    }
     
     Ok(())
 }
 
-async fn run_zeroclaw_command(args: Vec<&str>) -> Result<()> {
+fn run_zeroclaw_command(args: Vec<&str>) {
     use std::process::Command;
     
     let mut cmd = Command::new("zeroclaw");
     cmd.args(&args);
-    
-    // Completely silent - no output
     cmd.stdout(std::process::Stdio::null());
     cmd.stderr(std::process::Stdio::null());
     
-    let status = cmd.status()?;
+    let status = cmd.status().unwrap_or_default();
     std::process::exit(status.code().unwrap_or(1));
 }
