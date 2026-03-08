@@ -49,7 +49,7 @@
 
 ## Why OpenLife?
 
-| Feature | OpenLife | ClawBio |
+| Feature | OpenLife | Others |
 |---------|----------|---------|
 | Runtime | ZeroClaw (Rust) | OpenClaw (Python) |
 | Performance | High | Medium |

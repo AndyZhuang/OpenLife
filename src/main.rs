@@ -126,13 +126,12 @@ async fn main() -> Result<()> {
             println!("     • Protein Structure Prediction");
         }
         
-        // Gateway - Start the web interface
+        // Gateway - Start the web interface (OpenLife branded)
         Commands::Gateway { host, port } => {
-            tracing::info!("Starting OpenLife Gateway on {}:{}", host, port);
             start_gateway(host, port).await?;
         }
         
-        // Other ZeroClaw commands - delegate to zeroclaw CLI
+        // Other ZeroClaw commands - delegate silently
         Commands::Onboard { interactive, force } => {
             run_zeroclaw_command(vec!["onboard", 
                 if interactive { "--interactive" } else { "" },
@@ -162,6 +161,8 @@ async fn main() -> Result<()> {
 }
 
 async fn start_gateway(host: String, port: u16) -> Result<()> {
+    use std::process::Command;
+    
     println!("🌐 Starting OpenLife Gateway...");
     println!();
     println!("   URL: http://{}:{}", host, port);
@@ -170,8 +171,20 @@ async fn start_gateway(host: String, port: u16) -> Result<()> {
     println!("   Press Ctrl+C to stop");
     println!();
     
-    // 使用 zeroclaw CLI 启动 gateway（因为深度集成需要更多时间）
-    run_zeroclaw_command(vec!["gateway"]).await?;
+    // Start zeroclaw gateway silently in background
+    let mut cmd = Command::new("zeroclaw");
+    cmd.arg("gateway")
+       .arg("--host")
+       .arg(&host)
+       .arg("--port")
+       .arg(port.to_string())
+       .stdout(std::process::Stdio::null())
+       .stderr(std::process::Stdio::null());
+    
+    let _ = cmd.spawn();
+    
+    // Keep running until interrupted
+    tokio::signal::ctrl_c().await?;
     
     Ok(())
 }
@@ -182,46 +195,10 @@ async fn run_zeroclaw_command(args: Vec<&str>) -> Result<()> {
     let mut cmd = Command::new("zeroclaw");
     cmd.args(&args);
     
-    // 对于 gateway 命令，只静默日志，保留关键输出
-    let is_gateway = args.first().map(|a| *a == "gateway").unwrap_or(false);
+    // Completely silent - no output
+    cmd.stdout(std::process::Stdio::null());
+    cmd.stderr(std::process::Stdio::null());
     
-    if is_gateway {
-        cmd.stdout(std::process::Stdio::piped());
-        cmd.stderr(std::process::Stdio::piped());
-        
-        let mut child = cmd.spawn()?;
-        
-        use std::io::{BufRead, BufReader};
-        
-        if let Some(stdout) = child.stdout.take() {
-            let reader = BufReader::new(stdout);
-            for line in reader.lines() {
-                if let Ok(line) = line {
-                    // 只显示关键信息行
-                    if line.contains("listening") 
-                        || line.contains("Web Dashboard")
-                        || line.contains("PAIRING")
-                        || line.contains("┌")
-                        || line.contains("│")
-                        || line.contains("└")
-                        || line.contains("🦀")
-                        || line.contains("🌐")
-                        || line.contains("🔐")
-                        || line.contains("Press Ctrl") {
-                        println!("{}", line);
-                    }
-                }
-            }
-        }
-        
-        let status = child.wait()?;
-        std::process::exit(status.code().unwrap_or(1));
-    } else {
-        // 其他命令完全静默
-        cmd.stdout(std::process::Stdio::null());
-        cmd.stderr(std::process::Stdio::null());
-        
-        let status = cmd.status()?;
-        std::process::exit(status.code().unwrap_or(1));
-    }
+    let status = cmd.status()?;
+    std::process::exit(status.code().unwrap_or(1));
 }
