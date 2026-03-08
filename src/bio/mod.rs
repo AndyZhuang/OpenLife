@@ -279,6 +279,8 @@ fn copy_dir_all(src: &std::path::PathBuf, dst: &std::path::PathBuf) -> anyhow::R
     Ok(())
 }
 
+
+
 pub async fn query_with_natural_language(query: &str, input: Option<&str>, output: Option<&str>) -> anyhow::Result<()> {
     let intent = BioIntent::from_query(query);
     
@@ -305,6 +307,18 @@ pub async fn query_with_natural_language(query: &str, input: Option<&str>, outpu
     };
     
     println!("Routing to skill: {}", skill_name);
+    
+    if input.is_none() {
+        println!();
+        println!("Note: This skill requires an input file.");
+        println!("Use: openlife bio run {} --input <file> --output <dir>", skill_name);
+        println!();
+        println!("Demo data available at:");
+        println!("  - skills/pharmgx-reporter/demo_patient.txt");
+        println!("  - skills/nutrigx-advisor/synthetic_patient.csv");
+        println!("  - examples/demo_populations.vcf");
+        return Ok(());
+    }
     
     run_skill(skill_name, input, output).await
 }
