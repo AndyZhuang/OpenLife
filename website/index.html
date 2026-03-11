@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenLife - The Best Bioinformatics AI Agent</title>
+    <meta name="description" content="OpenLife is a high-performance bioinformatics AI agent built on ZeroClaw. Analyze genetic data, run bioinformatics workflows, and get AI-powered insights locally.">
+    <meta name="keywords" content="bioinformatics, AI agent, genetic analysis, pharmacogenomics, precision medicine, genomics, bioinformatics tools">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="OpenLife - The Best Bioinformatics AI Agent">
+    <meta property="og:description" content="High-performance bioinformatics AI agent with 24+ specialized skills">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://openlife.bio">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="OpenLife - The Best Bioinformatics AI Agent">
+    <meta name="twitter:description" content="High-performance bioinformatics AI agent with 24+ specialized skills">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 20px 0;
+            background: rgba(10, 10, 10, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+        
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo-icon {
+            font-size: 2rem;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            list-style: none;
+        }
+        
+        .nav-links a {
+            color: #a0a0a0;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: #00ff88;
+        }
+        
+        /* Hero Section */
+        .hero {
+            padding: 150px 0 100px;
+            text-align: center;
+        }
+        
+        .hero h1 {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #00ff88, #00bfff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero p {
+            font-size: 1.3rem;
+            color: #a0a0a0;
+            max-width: 800px;
+            margin: 0 auto 40px;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 15px 35px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #00ff88, #00bfff);
+            color: #000;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.3);
+        }
+        
+        .btn-secondary {
+            border: 2px solid #00ff88;
+            color: #00ff88;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(0, 255, 136, 0.1);
+        }
+        
+        /* Features Section */
+        .features {
+            padding: 100px 0;
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 60px;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 30px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 255, 136, 0.1);
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+        
+        .feature-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #00ff88;
+        }
+        
+        .feature-card p {
+            color: #a0a0a0;
+        }
+        
+        /* Skills Section */
+        .skills {
+            padding: 100px 0;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .skill-tag {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .skill-tag:hover {
+            background: rgba(0, 255, 136, 0.2);
+            transform: scale(1.02);
+        }
+        
+        /* Code Section */
+        .code-section {
+            padding: 100px 0;
+        }
+        
+        .code-block {
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 30px;
+            overflow-x: auto;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            line-height: 1.8;
+            margin-top: 30px;
+        }
+        
+        .code-comment {
+            color: #6a9955;
+        }
+        
+        .code-command {
+            color: #00ff88;
+        }
+        
+        .code-string {
+            color: #ce9178;
+        }
+        
+        /* Footer */
+        footer {
+            padding: 50px 0;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .footer-links {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .footer-links a {
+            color: #a0a0a0;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-links a:hover {
+            color: #00ff88;
+        }
+        
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="container nav-content">
+            <div class="logo">
+                <span class="logo-icon">🧬</span>
+                <span>OpenLife</span>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#skills">Skills</a></li>
+                <li><a href="#install">Install</a></li>
+                <li><a href="https://github.com/openlife-ai/openlife">GitHub</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>🧬 OpenLife</h1>
+            <p>The Best Bioinformatics AI Agent. High-performance, local-first, privacy-focused. Analyze genetic data, run workflows, and get AI-powered insights.</p>
+            <div class="cta-buttons">
+                <a href="#install" class="btn btn-primary">Get Started</a>
+                <a href="https://github.com/openlife-ai/openlife" class="btn btn-secondary">View on GitHub</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2 class="section-title">Why OpenLife?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>High Performance</h3>
+                    <p>Built on ZeroClaw (Rust) for <100ms startup and <5MB memory usage. 99% less memory than alternatives.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Privacy First</h3>
+                    <p>All processing runs locally on your machine. Genetic data never leaves your computer. No cloud, no tracking.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🧬</div>
+                    <h3>24+ Bio Skills</h3>
+                    <p>Pharmacogenomics, variant annotation, literature synthesis, single-cell analysis, and more specialized tools.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>AI-Powered</h3>
+                    <p>Natural language queries automatically route to the right skill. Ask questions, get expert bioinformatics answers.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🌐</div>
+                    <h3>Web Dashboard</h3>
+                    <p>Built-in gateway with web UI. Chat with your agent, manage skills, and view results from your browser.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📦</div>
+                    <h3>Easy Installation</h3>
+                    <p>One command install via Cargo. No complex dependencies. Works on macOS, Linux, and Windows.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Skills Section -->
+    <section class="skills" id="skills">
+        <div class="container">
+            <h2 class="section-title">24+ Bioinformatics Skills</h2>
+            <div class="skills-grid">
+                <div class="skill-tag">💊 pharmgx-reporter</div>
+                <div class="skill-tag">🥗 nutrigx-advisor</div>
+                <div class="skill-tag">🧬 vcf-annotator</div>
+                <div class="skill-tag">👤 ancestry-pca</div>
+                <div class="skill-tag">⚖️ equity-scorer</div>
+                <div class="skill-tag">📚 lit-synthesizer</div>
+                <div class="skill-tag">🔬 scrna-orchestrator</div>
+                <div class="skill-tag">🧪 struct-predictor</div>
+                <div class="skill-tag">🦠 metagenomics</div>
+                <div class="skill-tag">📊 seq-wrangler</div>
+                <div class="skill-tag">🔍 semantic-sim</div>
+                <div class="skill-tag">🔄 repro-enforcer</div>
+                <div class="skill-tag">🗄️ GWAS Database</div>
+                <div class="skill-tag">🗄️ ClinVar Database</div>
+                <div class="skill-tag">🗄️ PubMed Database</div>
+                <div class="skill-tag">🗄️ ChEMBL Database</div>
+                <div class="skill-tag">🗄️ COSMIC Database</div>
+                <div class="skill-tag">🗄️ UniProt Database</div>
+                <div class="skill-tag">🗄️ Ensembl Database</div>
+                <div class="skill-tag">🗄️ STRING Database</div>
+                <div class="skill-tag">🗄️ KEGG Database</div>
+                <div class="skill-tag">🧠 bio-orchestrator</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Installation Section -->
+    <section class="code-section" id="install">
+        <div class="container">
+            <h2 class="section-title">Quick Install</h2>
+            <div class="code-block">
+                <span class="code-comment"># 1. Install ZeroClaw (required)</span><br>
+                <span class="code-command">cargo install zeroclaw</span><br><br>
+                
+                <span class="code-comment"># 2. Clone and build OpenLife</span><br>
+                <span class="code-command">git clone https://github.com/openlife-ai/openlife.git</span><br>
+                <span class="code-command">cd openlife</span><br>
+                <span class="code-command">cargo build --release</span><br><br>
+                
+                <span class="code-comment"># 3. Add to PATH</span><br>
+                <span class="code-command">sudo cp target/release/openlife /usr/local/bin/</span><br><br>
+                
+                <span class="code-comment"># 4. Configure API key</span><br>
+                <span class="code-command">openlife config set --provider openai --api-key YOUR_KEY</span><br><br>
+                
+                <span class="code-comment"># 5. Run!</span><br>
+                <span class="code-command">openlife bio list</span><br>
+                <span class="code-command">openlife agent</span><br>
+                <span class="code-command">openlife gateway</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-links">
+                <a href="https://github.com/openlife-ai/openlife">GitHub</a>
+                <a href="https://github.com/zeroclaw-labs/zeroclaw">ZeroClaw</a>
+                <a href="https://cpicpgx.org">CPIC Guidelines</a>
+            </div>
+            <p>🧬 Built with ❤️ by the OpenLife Team</p>
+            <p style="margin-top: 10px; font-size: 0.9rem; color: #666;">
+                OpenLife is a research tool. Not a medical device. Consult healthcare professionals for medical decisions.
+            </p>
+        </div>
+    </footer>
+</body>
+</html>
