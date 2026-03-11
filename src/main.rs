@@ -4,7 +4,8 @@ mod error;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use std::io::{BufRead, Read, Write};
+use std::io::{Read, Write};
+
 use std::net::TcpListener;
 use std::process::Command;
 
@@ -92,7 +93,7 @@ enum ConfigAction {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    
+
     match cli.command {
         Commands::Bio { action } => {
             let rt = tokio::runtime::Runtime::new()?;
@@ -111,11 +112,9 @@ fn main() -> Result<()> {
                 Ok::<(), anyhow::Error>(())
             })?;
         }
-        
-        Commands::Config { action } => {
-            handle_config(action)?;
-        }
-        
+
+        Commands::Config { action } => handle_config(action)?,
+
         Commands::Version => {
             println!("🧬 OpenLife v{}", VERSION);
             println!();
@@ -131,19 +130,11 @@ fn main() -> Result<()> {
             println!("     • Literature Synthesis");
             println!("     • Single-Cell Analysis");
             println!("     • Protein Structure Prediction");
+            println!("     • +225 LabClaw Skills Integrated");
         }
-        
-        Commands::Gateway { host, port } => {
-            start_gateway(host, port)?;
-        }
-        
-        Commands::Onboard { interactive, force } => {
-            run_zeroclaw_command(vec!["onboard", 
-                if interactive { "--interactive" } else { "" },
-                if force { "--force" } else { "" }
-            ].into_iter().filter(|s| !s.is_empty()).collect(), true);
-        }
-        
+
+        Commands::Gateway { host, port } => start_gateway(host, port)?,
+
         Commands::Agent { message } => {
             if let Some(m) = message {
                 run_zeroclaw_command(vec!["agent", "-m", &m], false);
@@ -151,7 +142,21 @@ fn main() -> Result<()> {
                 run_zeroclaw_command(vec!["agent"], false);
             }
         }
-        
+
+        Commands::Onboard { interactive, force } => {
+            run_zeroclaw_command(
+                vec![
+                    "onboard",
+                    if interactive { "--interactive" } else { "" },
+                    if force { "--force" } else { "" },
+                ]
+                .into_iter()
+                .filter(|s| !s.is_empty())
+                .collect(),
+                true,
+            );
+        }
+
         Commands::Daemon => run_zeroclaw_command(vec!["daemon"], true),
         Commands::Doctor => run_zeroclaw_command(vec!["doctor"], true),
         Commands::Status => run_zeroclaw_command(vec!["status"], true),
@@ -175,10 +180,7 @@ fn handle_config(action: ConfigAction) -> Result<()> {
             println!();
             println!("  LLM Provider: {}", config.llm.provider);
             println!("  Model: {}", config.llm.model);
-            println!("  API Key: {}", 
-                if config.llm.api_key.is_some() { "(configured)" } 
-                else { "(not set)" }
-            );
+            println!("  API Key: {}", if config.llm.api_key.is_some() { "(configured)" } else { "(not set)" });
             if let Some(base_url) = &config.llm.base_url {
                 println!("  Base URL: {}", base_url);
             }
@@ -188,17 +190,10 @@ fn handle_config(action: ConfigAction) -> Result<()> {
             println!();
             println!("  Gateway: http://{}:{}", config.gateway.host, config.gateway.port);
             println!();
-            println!("  ZeroClaw: {}", 
-                if std::path::Path::new("/home/andy/.zeroclaw/config.toml").exists() {
-                    "✅ configured"
-                } else {
-                    "❌ not configured"
-                }
-            );
+            println!("  ZeroClaw: {}", if std::path::Path::new("/home/andy/.zeroclaw/config.toml").exists() { "✅ configured" } else { "❌ not configured" });
         }
         ConfigAction::Set { provider, api_key, model } => {
             let mut config = config::OpenLifeConfig::load()?;
-            
             if let Some(p) = &provider {
                 if let Some(key) = &api_key {
                     config.set_api_key(p, key);
@@ -212,12 +207,9 @@ fn handle_config(action: ConfigAction) -> Result<()> {
             if let Some(m) = model {
                 config.llm.model = m;
             }
-            
             config.save()?;
             sync_to_zeroclaw(&config)?;
-            
             println!("✅ Configuration saved and synced to ZeroClaw!");
-            println!("   Run 'openlife config show' to verify");
         }
         ConfigAction::Init => {
             let config = config::OpenLifeConfig::default();
@@ -227,8 +219,6 @@ fn handle_config(action: ConfigAction) -> Result<()> {
             println!();
             println!("   Next steps:");
             println!("     1. Set your API key:");
-            println!("        openlife config set --provider openai --api-key YOUR_KEY");
-            println!("     2. Or use OpenRouter for multiple models:");
             println!("        openlife config set --provider openrouter --api-key YOUR_KEY");
         }
     }
@@ -237,15 +227,12 @@ fn handle_config(action: ConfigAction) -> Result<()> {
 
 fn sync_to_zeroclaw(config: &config::OpenLifeConfig) -> Result<()> {
     let zeroclaw_config = std::path::Path::new("/home/andy/.zeroclaw/config.toml");
-    
     if !zeroclaw_config.exists() {
         println!("⚠️  ZeroClaw config not found, skipping sync");
         return Ok(());
     }
-    
     let content = std::fs::read_to_string(zeroclaw_config)?;
     let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
-    
     for line in lines.iter_mut() {
         if line.starts_with("default_provider") {
             *line = format!("default_provider = \"{}\"", config.llm.provider);
@@ -254,10 +241,8 @@ fn sync_to_zeroclaw(config: &config::OpenLifeConfig) -> Result<()> {
             *line = format!("default_model = \"{}\"", config.llm.model);
         }
     }
-    
     let updated = lines.join("\n");
     std::fs::write(zeroclaw_config, updated)?;
-    
     println!("🔄 Synced to ZeroClaw config");
     Ok(())
 }
@@ -268,56 +253,45 @@ fn start_gateway(host: String, port: u16) -> Result<()> {
     println!("   URL: http://{}:{}", host, port);
     println!();
     println!("   🧬 No pairing required - just start chatting!");
+    println!("   🧪 LabClaw Skills: 225+ bioinformatics skills available");
     println!("   Press Ctrl+C to stop");
     println!();
-    
+
     let html_content = include_str!("dashboard.html");
     let addr = format!("{}:{}", host, port);
     let listener = TcpListener::bind(&addr)?;
-    
+
     println!("🧬 OpenLife Gateway is running!");
     println!("   Open http://{}/ in your browser", addr);
     println!();
-    
+
     for stream in listener.incoming() {
         let mut stream = stream?;
         let mut buffer = [0; 8192];
-        
         stream.read(&mut buffer).ok();
         let request = String::from_utf8_lossy(&buffer);
         let request_line = request.lines().next().unwrap_or("");
         let path = request_line.split_whitespace().nth(1).unwrap_or("/");
-        
         let response = handle_request(path, &request, html_content);
-        
         stream.write_all(response.as_bytes()).ok();
         stream.flush().ok();
     }
-    
     Ok(())
 }
 
 fn handle_request(path: &str, request: &str, html: &str) -> String {
     match path {
         "/" | "/index.html" => {
-            format!(
-                "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-                html.len(), html
-            )
+            format!("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}", html.len(), html)
         }
         "/api/status" => {
             let status = r#"{"status":"running","version":"0.1.0","pairing":false}"#;
-            format!(
-                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-                status.len(), status
-            )
+            format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}", status.len(), status)
         }
         "/api/chat" if request.contains("POST") => {
-            // Extract message from JSON body
             let body = request.split("\r\n\r\n").nth(1).unwrap_or("{}");
             let message = if body.contains("\"message\"") {
-                body.split("\"message\"")
-                    .nth(1)
+                body.split("\"message\"").nth(1)
                     .and_then(|s| s.split(':').nth(1))
                     .and_then(|s| s.trim().strip_prefix('"').and_then(|s| s.strip_suffix('"')))
                     .unwrap_or("Hello")
@@ -325,51 +299,39 @@ fn handle_request(path: &str, request: &str, html: &str) -> String {
             } else {
                 "Hello".to_string()
             };
-            
-            // Forward to ZeroClaw agent
+
             let output = Command::new("zeroclaw")
                 .arg("agent")
                 .arg("-m")
                 .arg(&message)
                 .output();
-            
+
             let response = match output {
                 Ok(o) => {
                     if o.status.success() {
-                        let result = String::from_utf8_lossy(&o.stdout);
-                        result.to_string()
+                        String::from_utf8_lossy(&o.stdout).to_string()
                     } else {
-                        "Agent is processing. Check terminal for output.".to_string()
+                        String::from_utf8_lossy(&o.stderr).to_string()
                     }
                 }
-                Err(_) => "Error: Could not connect to agent. Run 'openlife agent' in terminal first.".to_string()
+                Err(_) => "Error: Could not connect to agent. Make sure ZeroClaw is configured.".to_string()
             };
-            
-            let json = format!(r#"{{"response":"{}"}}"#, response.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n"));
-            format!(
-                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-                json.len(), json
-            )
+
+            let json = format!(r#"{{"response":"{}"}}"#, response.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").chars().take(2000).collect::<String>());
+            format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}", json.len(), json)
         }
-        _ => {
-            "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_string()
-        }
+        _ => "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_string()
     }
 }
 
 fn run_zeroclaw_command(args: Vec<&str>, silent: bool) {
     let mut cmd = Command::new("zeroclaw");
     cmd.args(&args);
-    
     if silent {
-        cmd.stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null());
+        cmd.stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
     } else {
-        cmd.stdin(std::process::Stdio::inherit())
-            .stdout(std::process::Stdio::inherit())
-            .stderr(std::process::Stdio::inherit());
+        cmd.stdin(std::process::Stdio::inherit()).stdout(std::process::Stdio::inherit()).stderr(std::process::Stdio::inherit());
     }
-    
     let status = cmd.status().unwrap_or_default();
     std::process::exit(status.code().unwrap_or(if silent { 1 } else { 0 }));
 }

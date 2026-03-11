@@ -19,6 +19,11 @@ pub enum BioIntent {
     SemanticAnalysis,
     Metagenomics,
     Unknown,
+    Cheminformatics,
+    Clinical,
+    Vision,
+    DataScience,
+    LabAutomation,
 }
 
 impl BioIntent {
@@ -37,6 +42,11 @@ impl BioIntent {
             BioIntent::DatabaseQuery => "bio-orchestrator",
             BioIntent::SemanticAnalysis => "semantic-sim",
             BioIntent::Metagenomics => "metagenomics",
+            BioIntent::Cheminformatics => "labclaw/pharma",
+            BioIntent::Clinical => "labclaw/med",
+            BioIntent::Vision => "labclaw/vision",
+            BioIntent::DataScience => "labclaw/general",
+            BioIntent::LabAutomation => "labclaw/bio",
             BioIntent::Unknown => "",
         }
     }
@@ -164,8 +174,20 @@ impl IntentRouter {
         for kw in ["metagenomics", "16s", "shotgun", "microbiome"] {
             keyword_map.insert(kw.to_string(), BioIntent::Metagenomics);
         }
-        for kw in ["semantic", "research gap", "neglect", "ntd"] {
-            keyword_map.insert(kw.to_string(), BioIntent::SemanticAnalysis);
+        for kw in ["rdkit", "molecular", "cheminformatics", "docking", "drug", "compound", "molecule", "smiles", "maccs", "fingerprint"] {
+            keyword_map.insert(kw.to_string(), BioIntent::Cheminformatics);
+        }
+        for kw in ["clinical", "trial", "patient", "diagnosis", "treatment", "oncology", "cancer", "precision medicine"] {
+            keyword_map.insert(kw.to_string(), BioIntent::Clinical);
+        }
+        for kw in ["vision", "image", "tracking", "pose", "segmentation", "camera", "video"] {
+            keyword_map.insert(kw.to_string(), BioIntent::Vision);
+        }
+        for kw in ["statistics", "machine learning", "ml", "regression", "classification", "visualization", "plot", "data analysis"] {
+            keyword_map.insert(kw.to_string(), BioIntent::DataScience);
+        }
+        for kw in ["automation", "robot", "lab", "protocol", "benchling", "opentrons", "lims"] {
+            keyword_map.insert(kw.to_string(), BioIntent::LabAutomation);
         }
 
         Self {

@@ -76,7 +76,30 @@ OpenLife routes your queries to specialized bioinformatics skills:
 | **Metagenomics** | `metagenomics` | 16S, shotgun profiling |
 | **Semantic Analysis** | `semantic-sim` | Research gaps, NTDs |
 | **Protein Structure** | `struct-predictor` | AlphaFold, PDB |
-| **Reproducibility** | `repro-enforcer` | Nextflow, Conda |
+|| **Reproducibility** | `repro-enforcer` | Nextflow, Conda |
+
+### 🧪 LabClaw Integration (225+ Skills)
+
+OpenLife includes all skills from [LabClaw](https://github.com/wu-yc/LabClaw), a comprehensive skill library for biomedical AI workflows:
+
+| Category | Skills | Focus |
+|----------|--------|-------|
+| **Biology** | 80 | Genomics, proteomics, single-cell, multi-omics, databases |
+| **Pharmacy** | 36 | Cheminformatics, molecular ML, docking, drug discovery |
+| **Medicine** | 20 | Clinical trials, precision medicine, oncology |
+| **General** | 54 | Statistics, machine learning, visualization, writing |
+| **Literature** | 30 | PubMed, academic search, citations, patents |
+| **Vision** | 5 | Hand tracking, 3D pose, segmentation |
+
+To use LabClaw skills, install them:
+```bash
+openlife bio install skills/labclaw/bio
+openlife bio install skills/labclaw/pharma
+openlife bio install skills/labclaw/med
+openlife bio install skills/labclaw/general
+openlife bio install skills/labclaw/literature
+openlife bio install skills/labclaw/vision
+```
 
 ### 🗄️ Database Access Skills
 

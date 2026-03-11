@@ -300,6 +300,11 @@ pub async fn query_with_natural_language(query: &str, input: Option<&str>, outpu
         BioIntent::DatabaseQuery => "bio-orchestrator",
         BioIntent::SemanticAnalysis => "semantic-sim",
         BioIntent::Metagenomics => "metagenomics",
+        BioIntent::Cheminformatics => "labclaw/pharma",
+        BioIntent::Clinical => "labclaw/med",
+        BioIntent::Vision => "labclaw/vision",
+        BioIntent::DataScience => "labclaw/general",
+        BioIntent::LabAutomation => "labclaw/bio",
         BioIntent::Unknown => {
             println!("Could not determine which skill to use. Try being more specific.");
             return Ok(());
