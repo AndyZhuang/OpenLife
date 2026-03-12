@@ -75,6 +75,10 @@ enum BioAction {
         #[arg(short, long)]
         output: Option<String>,
     },
+    Chains,
+    Search {
+        query: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -108,6 +112,12 @@ fn main() -> Result<()> {
                     BioAction::Query { natural_language, input, output } => {
                         bio::query_with_natural_language(&natural_language, input.as_deref(), output.as_deref()).await?
                     }
+                    BioAction::Chains => {
+                        bio::list_chains();
+                    }
+                    BioAction::Search { query } => {
+                        bio::search_skills(&query).await?
+                    }
                 }
                 Ok::<(), anyhow::Error>(())
             })?;
@@ -131,6 +141,12 @@ fn main() -> Result<()> {
             println!("     • Single-Cell Analysis");
             println!("     • Protein Structure Prediction");
             println!("     • +225 LabClaw Skills Integrated");
+            println!();
+            println!("   New in v{}:", VERSION);
+            println!("     • Enhanced Orchestrator with multi-intent detection");
+            println!("     • Skill chain composition for complex workflows");
+            println!("     • Conversation context and memory");
+            println!("     • LLM-assisted intent classification (optional)");
         }
 
         Commands::Gateway { host, port } => start_gateway(host, port)?,
@@ -190,7 +206,9 @@ fn handle_config(action: ConfigAction) -> Result<()> {
             println!();
             println!("  Gateway: http://{}:{}", config.gateway.host, config.gateway.port);
             println!();
-            println!("  ZeroClaw: {}", if std::path::Path::new("/home/andy/.zeroclaw/config.toml").exists() { "✅ configured" } else { "❌ not configured" });
+            let home = std::env::var("HOME").unwrap_or_else(|_| "/home/user".to_string());
+            let zeroclaw_config = format!("{}/.zeroclaw/config.toml", home);
+            println!("  ZeroClaw: {}", if std::path::Path::new(&zeroclaw_config).exists() { "✅ configured" } else { "❌ not configured" });
         }
         ConfigAction::Set { provider, api_key, model } => {
             let mut config = config::OpenLifeConfig::load()?;
@@ -226,7 +244,10 @@ fn handle_config(action: ConfigAction) -> Result<()> {
 }
 
 fn sync_to_zeroclaw(config: &config::OpenLifeConfig) -> Result<()> {
-    let zeroclaw_config = std::path::Path::new("/home/andy/.zeroclaw/config.toml");
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/home/user".to_string());
+    let zeroclaw_config = format!("{}/.zeroclaw/config.toml", home);
+    let zeroclaw_config = std::path::Path::new(&zeroclaw_config);
+    
     if !zeroclaw_config.exists() {
         println!("⚠️  ZeroClaw config not found, skipping sync");
         return Ok(());
@@ -288,17 +309,44 @@ fn handle_request(path: &str, request: &str, html: &str) -> String {
             let status = r#"{"status":"running","version":"0.1.0","pairing":false}"#;
             format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}", status.len(), status)
         }
+        "/api/skills" => {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            let skills_json = rt.block_on(async {
+                get_skills_json().await
+            });
+            format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}", skills_json.len(), skills_json)
+        }
+        "/api/chains" => {
+            let chains_json = get_chains_json();
+            format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}", chains_json.len(), chains_json)
+        }
+        "/api/query" if request.contains("POST") => {
+            let body = request.split("\r\n\r\n").nth(1).unwrap_or("{}");
+            let query = extract_json_string(body, "query");
+            
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            let result = rt.block_on(async {
+                handle_query(&query).await
+            });
+            
+            format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}", result.len(), result)
+        }
+        "/api/run" if request.contains("POST") => {
+            let body = request.split("\r\n\r\n").nth(1).unwrap_or("{}");
+            let skill = extract_json_string(body, "skill");
+            let input = extract_json_string(body, "input");
+            let output = extract_json_string(body, "output");
+            
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            let result = rt.block_on(async {
+                handle_run(&skill, &input, &output).await
+            });
+            
+            format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}", result.len(), result)
+        }
         "/api/chat" if request.contains("POST") => {
             let body = request.split("\r\n\r\n").nth(1).unwrap_or("{}");
-            let message = if body.contains("\"message\"") {
-                body.split("\"message\"").nth(1)
-                    .and_then(|s| s.split(':').nth(1))
-                    .and_then(|s| s.trim().strip_prefix('"').and_then(|s| s.strip_suffix('"')))
-                    .unwrap_or("Hello")
-                    .to_string()
-            } else {
-                "Hello".to_string()
-            };
+            let message = extract_json_string(body, "message");
 
             let output = Command::new("zeroclaw")
                 .arg("agent")
@@ -314,10 +362,10 @@ fn handle_request(path: &str, request: &str, html: &str) -> String {
                         String::from_utf8_lossy(&o.stderr).to_string()
                     }
                 }
-                Err(_) => "Error: Could not connect to agent. Make sure ZeroClaw is configured.".to_string()
+                Err(_) => "Error: Could not connect to agent.".to_string()
             };
 
-            let json = format!(r#"{{"response":"{}"}}"#, response.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").chars().take(2000).collect::<String>());
+            let json = format!(r#"{{"response":"{}"}}"#, escape_json(&response));
             format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}", json.len(), json)
         }
         _ => "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_string()
@@ -334,4 +382,174 @@ fn run_zeroclaw_command(args: Vec<&str>, silent: bool) {
     }
     let status = cmd.status().unwrap_or_default();
     std::process::exit(status.code().unwrap_or(if silent { 1 } else { 0 }));
+}
+
+fn extract_json_string(body: &str, key: &str) -> String {
+    let pattern = format!("\"{}\"", key);
+    if let Some(after_key) = body.split(&pattern).nth(1) {
+        if let Some(after_colon) = after_key.split(':').nth(1) {
+            let trimmed = after_colon.trim();
+            if trimmed.starts_with('"') {
+                if let Some(end) = trimmed[1..].find('"') {
+                    return trimmed[1..end+1].to_string();
+                }
+            } else if let Some(end) = trimmed.find(|c: char| c == ',' || c == '}') {
+                return trimmed[..end].trim().to_string();
+            }
+        }
+    }
+    String::new()
+}
+
+fn escape_json(s: &str) -> String {
+    s.replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
+        .replace('\r', "\\r")
+        .replace('\t', "\\t")
+        .chars()
+        .take(4000)
+        .collect()
+}
+
+async fn get_skills_json() -> String {
+    use std::sync::Mutex;
+    use once_cell::sync::Lazy;
+    use bio::{SkillRegistry, SkillManifest};
+    
+    static REGISTRY: Lazy<Mutex<SkillRegistry>> = Lazy::new(|| {
+        Mutex::new(SkillRegistry::new(bio::get_skills_dir()))
+    });
+    
+    let mut registry = REGISTRY.lock().unwrap();
+    let _ = registry.ensure_loaded();
+    
+    let skills: Vec<serde_json::Value> = registry
+        .all()
+        .map(|s| {
+            serde_json::json!({
+                "name": s.name,
+                "version": s.version,
+                "description": s.description,
+                "tags": s.tags,
+                "inputs": s.inputs.len(),
+                "outputs": s.outputs.len()
+            })
+        })
+        .collect();
+    
+    serde_json::to_string(&skills).unwrap_or_else(|_| "[]".to_string())
+}
+
+fn get_chains_json() -> String {
+    use bio::orchestrator::chain::ChainBuilder;
+    
+    let builder = ChainBuilder::new();
+    let chains: Vec<serde_json::Value> = builder
+        .list_chains()
+        .into_iter()
+        .map(|c| {
+            serde_json::json!({
+                "name": c.name,
+                "description": c.description,
+                "steps": c.steps.iter().map(|s| serde_json::json!({
+                    "name": s.name,
+                    "skill": s.skill
+                })).collect::<Vec<_>>(),
+                "estimated_time": c.estimated_time
+            })
+        })
+        .collect();
+    
+    serde_json::to_string(&chains).unwrap_or_else(|_| "[]".to_string())
+}
+
+async fn handle_query(query: &str) -> String {
+    use std::sync::Mutex;
+    use once_cell::sync::Lazy;
+    use bio::{EnhancedOrchestrator, SkillRegistry, SkillExecutor, BioIntent};
+    
+    static ORCHESTRATOR: Lazy<Mutex<EnhancedOrchestrator>> = Lazy::new(|| {
+        Mutex::new(EnhancedOrchestrator::new())
+    });
+    
+    static REGISTRY: Lazy<Mutex<SkillRegistry>> = Lazy::new(|| {
+        Mutex::new(SkillRegistry::new(bio::get_skills_dir()))
+    });
+    
+    let mut orchestrator = ORCHESTRATOR.lock().unwrap();
+    let plan = orchestrator.route(query).await;
+    
+    let mut registry = REGISTRY.lock().unwrap();
+    let _ = registry.ensure_loaded();
+    
+    let intent_name = plan.primary_intent.display_name().to_string();
+    let confidence = plan.confidence;
+    let skill_name = plan.primary_intent.skill_name().to_string();
+    
+    let response = if plan.primary_intent == BioIntent::Unknown {
+        format!("I couldn't determine the analysis type. Try being more specific about what you want to analyze.")
+    } else if skill_name.is_empty() {
+        format!("Detected intent: {} but no skill is available for this.", intent_name)
+    } else {
+        // Check if skill exists in registry
+        if let Some(skill) = registry.get(&skill_name) {
+            format!("Detected intent: {} with {:.0}% confidence. Ready to run skill: {}", intent_name, confidence * 100.0, skill.name)
+        } else {
+            format!("Detected intent: {} with {:.0}% confidence. Install the {} skill to perform this analysis.", intent_name, confidence * 100.0, skill_name)
+        }
+    };
+    
+    serde_json::json!({
+        "intent": intent_name,
+        "confidence": confidence,
+        "skill": skill_name,
+        "response": response
+    }).to_string()
+}
+
+async fn handle_run(skill_name: &str, input: &str, output: &str) -> String {
+    use std::sync::Mutex;
+    use once_cell::sync::Lazy;
+    use bio::{SkillRegistry, SkillExecutor};
+    use std::path::PathBuf;
+    
+    static REGISTRY: Lazy<Mutex<SkillRegistry>> = Lazy::new(|| {
+        Mutex::new(SkillRegistry::new(bio::get_skills_dir()))
+    });
+    
+    let mut registry = REGISTRY.lock().unwrap();
+    let _ = registry.ensure_loaded();
+    
+    let skill = match registry.get(skill_name) {
+        Some(s) => s.clone(),
+        None => {
+            return serde_json::json!({
+                "success": false,
+                "error": format!("Skill '{}' not found", skill_name)
+            }).to_string();
+        }
+    };
+    
+    let executor = SkillExecutor::new(std::env::temp_dir());
+    
+    let input_path = if input.is_empty() { None } else { Some(PathBuf::from(input)) };
+    let output_path = if output.is_empty() { None } else { Some(PathBuf::from(output)) };
+    
+    match executor.execute(&skill, input_path.as_deref(), output_path.as_deref()) {
+        Ok(result) => {
+            serde_json::json!({
+                "success": result.success,
+                "output": result.output,
+                "error": result.error,
+                "duration_ms": result.duration_ms
+            }).to_string()
+        }
+        Err(e) => {
+            serde_json::json!({
+                "success": false,
+                "error": e.to_string()
+            }).to_string()
+        }
+    }
 }

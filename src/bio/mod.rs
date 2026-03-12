@@ -1,7 +1,9 @@
 pub mod orchestrator;
 pub mod core;
+pub mod skill_registry;
 
-pub use orchestrator::BioIntent;
+pub use orchestrator::{BioIntent, EnhancedOrchestrator, RoutingPlan};
+pub use skill_registry::{SkillRegistry, SkillLoader, SkillManifest, SkillExecutor};
 
 pub const OPENLIFE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -11,319 +13,372 @@ pub fn get_skills_dir() -> std::path::PathBuf {
     dirs.data_dir().join("skills")
 }
 
+/// List all installed skills
 pub async fn list_skills() -> anyhow::Result<()> {
-    let skills_dir = get_skills_dir();
+    use std::sync::Mutex;
+    use once_cell::sync::Lazy;
     
-    if !skills_dir.exists() {
+    static REGISTRY: Lazy<Mutex<SkillRegistry>> = Lazy::new(|| {
+        Mutex::new(SkillRegistry::new(get_skills_dir()))
+    });
+    
+    let mut registry = REGISTRY.lock().unwrap();
+    registry.ensure_loaded()?;
+    
+    let skills: Vec<_> = registry.all().collect();
+    
+    if skills.is_empty() {
         println!("No skills installed. Use `openlife bio install <path>` to install a skill.");
+        println!("\nBundled skills available:");
+        println!("  • skills/pharmgx-reporter - Pharmacogenomic analysis");
+        println!("  • skills/nutrigx-advisor - Nutrigenomics recommendations");
+        println!("  • skills/equity-scorer - Diversity scoring");
+        println!("  • skills/vcf-annotator - Variant annotation");
+        println!("  • skills/labclaw/bio/* - LabClaw bioinformatics skills");
         return Ok(());
     }
-
-    println!("Available Bio-Skills:\n");
     
-    for entry in std::fs::read_dir(&skills_dir)? {
-        let entry = entry?;
-        let path = entry.path();
-        
-        if path.is_dir() {
-            let skill_name = path.file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("unknown");
-            
-            let info = load_skill_info(&path);
-            println!("  {} - {}", skill_name, info.description);
+    println!("\n📦 Installed Bio-Skills ({}):", skills.len());
+    println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+    
+    let mut skills: Vec<_> = skills.into_iter().collect();
+    skills.sort_by(|a, b| a.name.cmp(&b.name));
+    
+    for skill in skills {
+        println!("  {} - {}", skill.name, skill.description);
+        if !skill.tags.is_empty() {
+            println!("    Tags: {}", skill.tags.join(", "));
         }
     }
     
     Ok(())
 }
 
-struct SkillInfo {
-    name: String,
-    version: String,
-    description: String,
-    author: Option<String>,
-    tags: Vec<String>,
-}
-
-fn load_skill_info(skill_dir: &std::path::PathBuf) -> SkillInfo {
-    let toml_path = skill_dir.join("SKILL.toml");
-    
-    if toml_path.exists() {
-        if let Ok(content) = std::fs::read_to_string(&toml_path) {
-            if let Ok(info) = toml::from_str::<toml::Value>(&content) {
-                return SkillInfo {
-                    name: info.get("skill").and_then(|s| s.get("name")).and_then(|n| n.as_str()).unwrap_or("unknown").to_string(),
-                    version: info.get("skill").and_then(|s| s.get("version")).and_then(|v| v.as_str()).unwrap_or("0.1.0").to_string(),
-                    description: info.get("skill").and_then(|s| s.get("description")).and_then(|d| d.as_str()).unwrap_or("").to_string(),
-                    author: info.get("skill").and_then(|s| s.get("author")).and_then(|a| a.as_str()).map(|s| s.to_string()),
-                    tags: info.get("skill").and_then(|s| s.get("tags")).and_then(|t| t.as_array()).map(|arr| {
-                        arr.iter().filter_map(|v| v.as_str()).map(|s| s.to_string()).collect()
-                    }).unwrap_or_default(),
-                };
-            }
-        }
-    }
-    
-    let md_path = skill_dir.join("SKILL.md");
-    if md_path.exists() {
-        if let Ok(content) = std::fs::read_to_string(&md_path) {
-            if content.starts_with("---") {
-                let after_first = &content[3..];
-                if let Some(end) = after_first.find("---") {
-                    let frontmatter = after_first[..end].trim();
-                    if let Ok(info) = serde_yaml::from_str::<serde_yaml::Value>(frontmatter) {
-                        let get_str = |key: &str| -> String {
-                            info.get(key)
-                                .and_then(|v| v.as_str())
-                                .map(|s| s.to_string())
-                                .unwrap_or_default()
-                        };
-                        let get_array = |key: &str| -> Vec<String> {
-                            info.get(key)
-                                .and_then(|v| v.as_sequence())
-                                .map(|arr| {
-                                    arr.iter()
-                                        .filter_map(|v| v.as_str())
-                                        .map(|s| s.to_string())
-                                        .collect()
-                                })
-                                .unwrap_or_default()
-                        };
-                        return SkillInfo {
-                            name: get_str("name"),
-                            version: get_str("version"),
-                            description: get_str("description"),
-                            author: Some(get_str("author")).filter(|s| !s.is_empty()),
-                            tags: get_array("tags"),
-                        };
-                    }
-                }
-            }
-            let lines: Vec<&str> = content.lines().collect();
-            let mut desc = String::new();
-            let mut found_desc = false;
-            for line in lines {
-                let trimmed = line.trim();
-                if trimmed.is_empty() || trimmed.starts_with('#') {
-                    continue;
-                }
-                desc = trimmed.to_string();
-                found_desc = true;
-                break;
-            }
-            if found_desc {
-                return SkillInfo {
-                    name: skill_dir.file_name()
-                        .and_then(|n| n.to_str())
-                        .unwrap_or("unknown")
-                        .to_string(),
-                    version: "0.1.0".to_string(),
-                    description: desc,
-                    author: None,
-                    tags: vec![],
-                };
-            }
-        }
-    }
-    
-    SkillInfo {
-        name: skill_dir.file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("unknown")
-            .to_string(),
-        version: "0.1.0".to_string(),
-        description: "No description available".to_string(),
-        author: None,
-        tags: vec![],
-    }
-}
-
+/// Show detailed info for a skill
 pub async fn show_skill_info(skill_name: &str) -> anyhow::Result<()> {
-    let skills_dir = get_skills_dir();
-    let skill_path = skills_dir.join(skill_name);
+    use std::sync::Mutex;
+    use once_cell::sync::Lazy;
     
-    if !skill_path.exists() {
-        anyhow::bail!("Skill '{}' not found. Use `openlife bio list` to see available skills.", skill_name);
+    static REGISTRY: Lazy<Mutex<SkillRegistry>> = Lazy::new(|| {
+        Mutex::new(SkillRegistry::new(get_skills_dir()))
+    });
+    
+    let mut registry = REGISTRY.lock().unwrap();
+    registry.ensure_loaded()?;
+    
+    let skill = registry.get(skill_name)
+        .ok_or_else(|| anyhow::anyhow!("Skill '{}' not found. Use `openlife bio list` to see available skills.", skill_name))?;
+    
+    println!("\n┌─────────────────────────────────────────┐");
+    println!("│ {} v{}", skill.name, skill.version);
+    println!("├─────────────────────────────────────────┤");
+    println!("│ {}", skill.description);
+    println!("└─────────────────────────────────────────┘");
+    
+    if let Some(ref author) = skill.author {
+        println!("\n👤 Author: {}", author);
     }
     
-    let info = load_skill_info(&skill_path);
-    
-    println!("\n=== {} ===", info.name);
-    println!("Version: {}", info.version);
-    println!("Description: {}", info.description);
-    
-    if let Some(author) = info.author {
-        println!("Author: {}", author);
+    if let Some(ref license) = skill.license {
+        println!("📜 License: {}", license);
     }
     
-    if !info.tags.is_empty() {
-        println!("Tags: {:?}", info.tags);
+    if !skill.tags.is_empty() {
+        println!("\n🏷️  Tags: {}", skill.tags.join(", "));
     }
+    
+    if !skill.inputs.is_empty() {
+        println!("\n📥 Inputs:");
+        for input in &skill.inputs {
+            let formats = if input.format.is_empty() {
+                String::new()
+            } else {
+                format!(" ({})", input.format.join(", "))
+            };
+            println!("  • {} [{}]{} - {}", input.name, input.input_type, formats, input.description);
+        }
+    }
+    
+    if !skill.outputs.is_empty() {
+        println!("\n📤 Outputs:");
+        for output in &skill.outputs {
+            println!("  • {} [{}] - {}", output.name, output.output_type, output.description);
+        }
+    }
+    
+    if let Some(ref script) = skill.script_path {
+        println!("\n🐍 Script: {}", script.display());
+    }
+    
+    if !skill.dependencies.is_empty() {
+        println!("\n📦 Dependencies: {}", skill.dependencies.join(", "));
+    }
+    
+    println!("\n💡 Usage:");
+    println!("   openlife bio run {} --input <file> --output <dir>", skill_name);
     
     Ok(())
 }
 
+/// Run a skill with given inputs
 pub async fn run_skill(skill_name: &str, input: Option<&str>, output: Option<&str>) -> anyhow::Result<()> {
-    use std::process::Command;
+    use std::sync::Mutex;
+    use once_cell::sync::Lazy;
     
-    let skills_dir = get_skills_dir();
-    let skill_path = skills_dir.join(skill_name);
+    static REGISTRY: Lazy<Mutex<SkillRegistry>> = Lazy::new(|| {
+        Mutex::new(SkillRegistry::new(get_skills_dir()))
+    });
     
-    if !skill_path.exists() {
-        anyhow::bail!("Skill '{}' not found", skill_name);
-    }
+    let mut registry = REGISTRY.lock().unwrap();
+    registry.ensure_loaded()?;
     
-    let script_names = vec![
-        format!("{}.py", skill_name.replace("-", "_")),
-        format!("{}.py", skill_name),
-    ];
+    let skill = registry.get(skill_name)
+        .ok_or_else(|| anyhow::anyhow!("Skill '{}' not found", skill_name))?
+        .clone();
     
-    let mut script_path = None;
-    for name in script_names {
-        let path = skill_path.join(name);
-        if path.exists() {
-            script_path = Some(path);
-            break;
+    let executor = SkillExecutor::new(std::env::temp_dir());
+    
+    // Validate dependencies first
+    let missing = executor.validate_dependencies(&skill)?;
+    if !missing.is_empty() {
+        println!("⚠️  Missing dependencies:");
+        for dep in &missing {
+            println!("   • {}", dep);
         }
+        println!("\nInstall with: pip install <package>");
     }
     
-    let script_path = match script_path {
-        Some(p) => p,
-        None => {
-            if let Ok(entries) = std::fs::read_dir(&skill_path) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.extension().map(|e| e == "py").unwrap_or(false) {
-                        script_path = Some(path);
-                        break;
-                    }
-                }
-            }
-            if let Some(p) = script_path {
-                p
-            } else {
-                anyhow::bail!("No Python script found in skill directory");
+    let input_path = input.map(|p| std::path::PathBuf::from(p));
+    let output_path = output.map(|p| std::path::PathBuf::from(p));
+    
+    println!("🚀 Running skill: {} v{}", skill.name, skill.version);
+    
+    let result = executor.execute(&skill, input_path.as_deref(), output_path.as_deref())?;
+    
+    if result.success {
+        println!("\n✅ Success ({}ms)", result.duration_ms);
+        if !result.output.is_empty() {
+            println!("\n{}", result.output);
+        }
+        if !result.output_files.is_empty() {
+            println!("\n📄 Output files:");
+            for file in &result.output_files {
+                println!("   • {}", file.display());
             }
         }
-    };
-    
-    let mut cmd = Command::new("python3");
-    cmd.arg(&script_path);
-    
-    if let Some(input_file) = input {
-        cmd.arg("--input").arg(input_file);
-    }
-    
-    if let Some(output_dir) = output {
-        cmd.arg("--output").arg(output_dir);
-    }
-    
-    println!("Running skill: {}", skill_name);
-    
-    let output = cmd.output()?;
-    
-    if output.status.success() {
-        println!("\n{}", String::from_utf8_lossy(&output.stdout));
     } else {
-        eprintln!("Error: {}", String::from_utf8_lossy(&output.stderr));
+        eprintln!("\n❌ Execution failed");
+        if let Some(error) = result.error {
+            eprintln!("\nError: {}", error);
+        }
         anyhow::bail!("Skill execution failed");
     }
     
     Ok(())
 }
 
+/// Install a skill from a path
 pub async fn install_skill(skill_path: &str) -> anyhow::Result<()> {
-    let source = std::path::PathBuf::from(skill_path);
-    let skills_dir = get_skills_dir();
+    use std::sync::Mutex;
+    use once_cell::sync::Lazy;
+    
+    static REGISTRY: Lazy<Mutex<SkillRegistry>> = Lazy::new(|| {
+        Mutex::new(SkillRegistry::new(get_skills_dir()))
+    });
+    
+    let mut source = std::path::PathBuf::from(skill_path);
+    
+    // Support bundled skill paths like "labclaw/bio/pyhealth"
+    if !source.exists() && skill_path.starts_with("labclaw/") {
+        source = std::path::PathBuf::from("skills").join(skill_path);
+    }
     
     if !source.exists() {
         anyhow::bail!("Skill path '{}' does not exist", skill_path);
     }
     
-    let skill_name = source.file_name()
-        .and_then(|n| n.to_str())
-        .ok_or_else(|| anyhow::anyhow!("Invalid skill path"))?;
+    let mut registry = REGISTRY.lock().unwrap();
+    let skill_name = registry.install(&source)?;
     
-    let target = skills_dir.join(skill_name);
-    
-    if target.exists() {
-        anyhow::bail!("Skill '{}' is already installed", skill_name);
-    }
-    
-    std::fs::create_dir_all(&skills_dir)?;
-    copy_dir_all(&source, &target)?;
-    
-    println!("Installed skill '{}' to {}", skill_name, target.display());
+    println!("✅ Installed skill '{}' to {}", skill_name, get_skills_dir().join(&skill_name).display());
     
     Ok(())
 }
 
-fn copy_dir_all(src: &std::path::PathBuf, dst: &std::path::PathBuf) -> anyhow::Result<()> {
-    if !dst.exists() {
-        std::fs::create_dir_all(dst)?;
+/// Search for skills matching a query
+pub async fn search_skills(query: &str) -> anyhow::Result<()> {
+    use std::sync::Mutex;
+    use once_cell::sync::Lazy;
+    
+    static REGISTRY: Lazy<Mutex<SkillRegistry>> = Lazy::new(|| {
+        Mutex::new(SkillRegistry::new(get_skills_dir()))
+    });
+    
+    let mut registry = REGISTRY.lock().unwrap();
+    registry.ensure_loaded()?;
+    
+    let results = registry.search(query);
+    
+    if results.is_empty() {
+        println!("No skills found matching '{}'", query);
+        return Ok(());
     }
     
-    for entry in std::fs::read_dir(src)? {
-        let entry = entry?;
-        let ty = entry.file_type()?;
-        let dest_path = dst.join(entry.file_name());
-        
-        if ty.is_dir() {
-            copy_dir_all(&entry.path(), &dest_path)?;
-        } else {
-            std::fs::copy(entry.path(), dest_path)?;
+    println!("\n🔍 Search results for '{}':\n", query);
+    
+    for result in results {
+        println!("  {} (score: {:.1})", result.skill.name, result.score);
+        println!("    {}", result.skill.description);
+        if !result.matched_on.is_empty() {
+            println!("    Matched: {}", result.matched_on.join(", "));
         }
+        println!();
     }
     
     Ok(())
 }
 
-
-
+/// Enhanced natural language query with intelligent routing
 pub async fn query_with_natural_language(query: &str, input: Option<&str>, output: Option<&str>) -> anyhow::Result<()> {
-    let intent = BioIntent::from_query(query);
+    use std::sync::Mutex;
+    use once_cell::sync::Lazy;
     
-    println!("Detected intent: {:?}", intent);
+    static ORCHESTRATOR: Lazy<Mutex<EnhancedOrchestrator>> = Lazy::new(|| {
+        Mutex::new(EnhancedOrchestrator::new())
+    });
     
-    let skill_name = match intent {
-        BioIntent::Pharmacogenomics => "pharmgx-reporter",
-        BioIntent::Ancestry => "ancestry-pca",
-        BioIntent::Diversity => "equity-scorer",
-        BioIntent::Nutrition => "nutrigx-advisor",
-        BioIntent::VariantAnnotation => "vcf-annotator",
-        BioIntent::Literature => "lit-synthesizer",
-        BioIntent::SingleCell => "scrna-orchestrator",
-        BioIntent::ProteinStructure => "struct-predictor",
-        BioIntent::Reproducibility => "repro-enforcer",
-        BioIntent::SequenceAnalysis => "seq-wrangler",
-        BioIntent::DatabaseQuery => "bio-orchestrator",
-        BioIntent::SemanticAnalysis => "semantic-sim",
-        BioIntent::Metagenomics => "metagenomics",
-        BioIntent::Cheminformatics => "labclaw/pharma",
-        BioIntent::Clinical => "labclaw/med",
-        BioIntent::Vision => "labclaw/vision",
-        BioIntent::DataScience => "labclaw/general",
-        BioIntent::LabAutomation => "labclaw/bio",
-        BioIntent::Unknown => {
-            println!("Could not determine which skill to use. Try being more specific.");
+    static REGISTRY: Lazy<Mutex<SkillRegistry>> = Lazy::new(|| {
+        Mutex::new(SkillRegistry::new(get_skills_dir()))
+    });
+    
+    let mut orchestrator = ORCHESTRATOR.lock().unwrap();
+    let plan = orchestrator.route(query).await;
+    
+    println!("\n🧬 OpenLife Analysis");
+    println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    
+    if plan.is_multi_step() {
+        println!("📋 Multi-step workflow detected:");
+        for (i, skill) in plan.all_skills().iter().enumerate() {
+            println!("   {}. {}", i + 1, skill);
+        }
+        println!();
+        
+        if let Some(ref msg) = plan.confirmation_message {
+            println!("ℹ️  {}", msg);
+        }
+    } else {
+        println!("🎯 Intent: {}", plan.primary_intent.display_name());
+        println!("📊 Confidence: {:.0}%", plan.confidence * 100.0);
+        println!("🔧 Method: {:?}", plan.method);
+    }
+    
+    if plan.primary_intent == BioIntent::Unknown {
+        println!();
+        println!("❓ I couldn't determine the analysis type.");
+        println!("   Try being more specific:");
+        println!("   • \"Analyze my VCF for drug metabolism genes\"");
+        println!("   • \"Find papers on CRISPR gene editing\"");
+        println!("   • \"What drugs should I avoid with CYP2D6?\"");
+        println!("   • \"Calculate diversity metrics from my genetic data\"");
+        
+        // Search for matching skills
+        let mut registry = REGISTRY.lock().unwrap();
+        registry.ensure_loaded()?;
+        let matches = registry.search(query);
+        
+        if !matches.is_empty() {
+            println!("\n   Related skills:");
+            for m in matches.iter().take(3) {
+                println!("   • {} - {}", m.skill.name, m.skill.description);
+            }
+        }
+        
+        return Ok(());
+    }
+    
+    // Check registry for skills matching this intent
+    let mut registry = REGISTRY.lock().unwrap();
+    registry.ensure_loaded()?;
+    
+    // First try to find a skill matching the intent
+    let skill = if let Some(s) = registry.get(plan.primary_intent.skill_name()) {
+        Some(s.clone())
+    } else {
+        // Fall back to searching by intent
+        registry.by_intent(plan.primary_intent.clone()).into_iter().next().cloned()
+    };
+    
+    let skill = match skill {
+        Some(s) => s,
+        None => {
+            println!("\n⚠️  No skill available for intent: {}", plan.primary_intent.display_name());
+            println!("   Install a skill with: openlife bio install <path>");
             return Ok(());
         }
     };
     
-    println!("Routing to skill: {}", skill_name);
+    println!("\n📦 Routing to skill: {} v{}", skill.name, skill.version);
     
-    if input.is_none() {
-        println!();
-        println!("Note: This skill requires an input file.");
-        println!("Use: openlife bio run {} --input <file> --output <dir>", skill_name);
-        println!();
-        println!("Demo data available at:");
-        println!("  - skills/pharmgx-reporter/demo_patient.txt");
-        println!("  - skills/nutrigx-advisor/synthetic_patient.csv");
-        println!("  - examples/demo_populations.vcf");
+    // Check if input is required
+    if input.is_none() && skill.requires_input() {
+        let formats = skill.supported_formats();
+        println!("\n📄 This analysis requires an input file.");
+        println!("\n   Supported formats: {}", formats.join(", "));
+        println!("\n   Usage:");
+        println!("     openlife bio run {} --input <file> --output <dir>", skill.name);
+        println!("\n   Demo data:");
+        println!("     • skills/pharmgx-reporter/demo_patient.txt");
+        println!("     • skills/nutrigx-advisor/synthetic_patient.csv");
+        println!("     • examples/demo_populations.vcf");
         return Ok(());
     }
     
-    run_skill(skill_name, input, output).await
+    // Execute the skill
+    let executor = SkillExecutor::new(std::env::temp_dir());
+    let input_path = input.map(|p| std::path::PathBuf::from(p));
+    let output_path = output.map(|p| std::path::PathBuf::from(p));
+    
+    println!("\n🚀 Executing...");
+    
+    let result = executor.execute(&skill, input_path.as_deref(), output_path.as_deref())?;
+    
+    if result.success {
+        println!("\n✅ Success ({}ms)", result.duration_ms);
+        if !result.output.is_empty() {
+            println!("\n{}", result.output);
+        }
+        if !result.output_files.is_empty() {
+            println!("\n📄 Output files:");
+            for file in &result.output_files {
+                println!("   • {}", file.display());
+            }
+        }
+    } else {
+        eprintln!("\n❌ Execution failed");
+        if let Some(error) = result.error {
+            eprintln!("\nError: {}", error);
+        }
+    }
+    
+    Ok(())
+}
+
+/// List available predefined chains
+pub fn list_chains() {
+    use crate::bio::orchestrator::chain::ChainBuilder;
+    
+    let builder = ChainBuilder::new();
+    let chains = builder.list_chains();
+    
+    println!("\n📋 Available Analysis Chains:\n");
+    
+    for chain in chains {
+        println!("  {} - {}", chain.name, chain.description);
+        println!("    Steps: {}", chain.steps.iter().map(|s| s.name.as_str()).collect::<Vec<_>>().join(" → "));
+        if let Some(time) = chain.estimated_time {
+            println!("    Estimated time: {}s", time);
+        }
+        println!();
+    }
 }
